@@ -164,7 +164,7 @@ const html = `
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px 16px; text-align: center;">
       <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        🔇 NoCan News
+        NoCan News
       </h1>
       <p style="color: #9ca3af; font-size: 14px; margin: 0;">
         세상의 소음은 끄고, 구조적 맥락만 남긴다
