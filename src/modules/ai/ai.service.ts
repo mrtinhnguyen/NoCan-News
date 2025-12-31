@@ -368,13 +368,18 @@ ${liberalText.slice(0, 2000)}
   aggregateFilterStats(results: SelectionResult[]): FilterStats {
     return results.reduce<FilterStats>(
       (acc: FilterStats, result: SelectionResult) => ({
-        totalScanned: acc.totalScanned + Number(result.filterStats.scanned),
+        totalScanned:
+          acc.totalScanned + (Number(result.filterStats?.scanned) || 0),
         blocked: {
-          crime: acc.blocked.crime + Number(result.filterStats.blocked.crime),
-          gossip: acc.blocked.gossip + Number(result.filterStats.blocked.gossip),
+          crime:
+            acc.blocked.crime +
+            (Number(result.filterStats?.blocked?.crime) || 0),
+          gossip:
+            acc.blocked.gossip +
+            (Number(result.filterStats?.blocked?.gossip) || 0),
           politicalStrife:
             acc.blocked.politicalStrife +
-            Number(result.filterStats.blocked.politicalStrife),
+            (Number(result.filterStats?.blocked?.politicalStrife) || 0),
         },
       }),
       {

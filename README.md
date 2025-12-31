@@ -107,6 +107,7 @@
 | Framework       | NestJS (Standalone Mode)      |
 | Data Collection | rss-parser (Google News RSS)  |
 | Scraping        | cheerio (사설 본문 추출)      |
+| Database        | supabase                      |
 | AI Engine       | Gemini API (gemini-2.5-flash) |
 | Email           | nodemailer (Gmail SMTP)       |
 | Scheduler       | GitHub Actions (Cron)         |

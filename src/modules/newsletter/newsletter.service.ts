@@ -164,8 +164,18 @@ export class NewsletterService {
 
       // Step 6: 뉴스레터 데이터 구성
       this.logger.log('Step 6: Building newsletter data...');
+      const koreaDate = new Date()
+        .toLocaleDateString('ko-KR', {
+          timeZone: 'Asia/Seoul',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
+        .replace(/\. /g, '-')
+        .replace('.', '');
+
       const newsletterData: NewsletterData = {
-        date: new Date().toISOString().split('T')[0],
+        date: koreaDate,
         protectionLog: this.aiService.generateProtectionLog(filterStats),
         processedNews,
         editorialSynthesis,
@@ -203,23 +213,21 @@ export class NewsletterService {
         );
       } else {
         try {
-          const recipients = this.emailService.getRecipients();
+          const recipients = await this.emailService.getRecipients();
 
           if (recipients.length === 0) {
             this.logger.warn(
-              '⚠️ No recipients configured. Skipping email send.',
+              '⚠️ No active subscribers found. Skipping email send.',
             );
-            this.logger.log('Add recipients to NEWSLETTER_RECIPIENTS in .env');
           } else {
+            const emailList = recipients.map((r) => r.email).join(', ');
             this.logger.log(
-              `📤 Sending to ${recipients.length} recipient(s): ${recipients.join(', ')}`,
+              `📤 Sending to ${recipients.length} recipient(s): ${emailList}`,
             );
 
             await this.emailService.sendNewsletter(recipients, html);
 
-            this.logger.log(
-              `✅ Newsletter sent successfully to: ${recipients.join(', ')}`,
-            );
+            this.logger.log(`✅ Newsletter sending completed`);
             this.logger.log(
               `📊 Email size: ${(html.length / 1024).toFixed(2)} KB`,
             );

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { SupabaseModule } from './modules/supabase/supabase.module';
 import { RssModule } from './modules/rss/rss.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
@@ -12,6 +13,7 @@ import { ScraperModule } from './modules/scraper/scraper.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    SupabaseModule,
     RssModule,
     AiModule,
     EmailModule,

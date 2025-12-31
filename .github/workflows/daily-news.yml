@@ -31,6 +31,5 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
-          NEWSLETTER_RECIPIENTS: ${{ secrets.NEWSLETTER_RECIPIENTS }}
           NEWSLETTER_DRY_RUN: 'false'
         run: npm run start:prod
