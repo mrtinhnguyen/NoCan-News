@@ -2,42 +2,63 @@ const fs = require('fs');
 
 // Mock data
 const date = '2025-12-27';
-const protectionLog = '오늘 AI가 총 1,247건을 스캔하여 범죄 45건, 가십 89건, 정치적 비방 123건을 차단했습니다.';
+const mockUnsubscribeUrl = 'https://nocan-news.vercel.app/unsubscribe?id=123';
+const protectionLog =
+  '오늘 AI가 총 1,247건을 스캔하여 범죄 45건, 가십 89건, 정치적 비방 123건을 차단했습니다.';
 
 const mockNews = [
   {
     category: 'business',
-    original: { title: '개미들 곡소리... 삼성전자 4만전자 가나?', source: '한국경제' },
+    original: {
+      title: '개미들 곡소리... 삼성전자 4만전자 가나?',
+      source: '한국경제',
+    },
     rewrittenTitle: '삼성전자, 업황 둔화로 52주 신저가 기록',
     insight: {
       fact: '삼성전자 주가가 52주 최저가를 기록했다.',
-      context: '글로벌 반도체 수요 둔화와 메모리 가격 하락 압박이 지속되고 있다.',
-      implication: '반도체 업황 회복 시점에 따라 주가 반등 가능성이 결정될 전망이다.'
-    }
+      context:
+        '글로벌 반도체 수요 둔화와 메모리 가격 하락 압박이 지속되고 있다.',
+      implication:
+        '반도체 업황 회복 시점에 따라 주가 반등 가능성이 결정될 전망이다.',
+    },
   },
   {
     category: 'tech',
-    original: { title: 'AI 거품 터지나... 빅테크 주가 폭락 공포', source: '조선비즈' },
+    original: {
+      title: 'AI 거품 터지나... 빅테크 주가 폭락 공포',
+      source: '조선비즈',
+    },
     rewrittenTitle: '미국 빅테크 기업 주가, AI 투자 수익성 우려로 조정 국면',
     insight: {
       fact: '미국 주요 빅테크 기업들의 주가가 일제히 하락했다.',
-      context: 'AI 인프라 투자 대비 수익화 지연에 대한 시장의 우려가 반영되었다.',
-      implication: 'AI 기술의 실질적 수익 창출 여부가 향후 주가 방향을 결정할 핵심 변수다.'
-    }
-  }
+      context:
+        'AI 인프라 투자 대비 수익화 지연에 대한 시장의 우려가 반영되었다.',
+      implication:
+        'AI 기술의 실질적 수익 창출 여부가 향후 주가 방향을 결정할 핵심 변수다.',
+    },
+  },
 ];
 
 const editorialSynthesis = {
   topic: '주 35시간 근로제 도입 논쟁',
-  conflict: '노동자 삶의 질 향상 vs 기업 경쟁력 저하 우려. 양측은 근로시간 단축의 시급성과 방법론에서 첨예하게 대립하고 있다.',
-  argumentA: '한국의 노동생산성은 OECD 평균 대비 낮은 수준이다. 이 상황에서 근로시간을 일방적으로 단축하면 기업의 경쟁력 약화로 이어질 수 있으며, 결국 고용 감소라는 역효과를 초래할 수 있다. 생산성 향상 없는 근로시간 단축은 기업과 노동자 모두에게 해롭다.',
-  argumentB: '장시간 노동은 노동자의 건강권을 침해하고 삶의 질을 저하시킨다. 근로시간 단축은 노동자의 기본권 보호 차원에서 필수적이며, 오히려 집중력 향상과 이직률 감소를 통해 장기적으로 생산성 향상에 기여할 수 있다. 선진국들도 이미 이 방향으로 나아가고 있다.',
-  synthesis: '이 논쟁은 단순한 노동시간의 문제가 아니라, 한국 사회가 추구하는 성장 모델과 삶의 가치에 대한 근본적 질문이다. 생산성 향상과 근로자 복지 사이의 균형점을 사회적 합의로 도출해야 하는 과제다.'
+  conflict:
+    '노동자 삶의 질 향상 vs 기업 경쟁력 저하 우려. 양측은 근로시간 단축의 시급성과 방법론에서 첨예하게 대립하고 있다.',
+  argumentA:
+    '한국의 노동생산성은 OECD 평균 대비 낮은 수준이다. 이 상황에서 근로시간을 일방적으로 단축하면 기업의 경쟁력 약화로 이어질 수 있으며, 결국 고용 감소라는 역효과를 초래할 수 있다. 생산성 향상 없는 근로시간 단축은 기업과 노동자 모두에게 해롭다.',
+  argumentB:
+    '장시간 노동은 노동자의 건강권을 침해하고 삶의 질을 저하시킨다. 근로시간 단축은 노동자의 기본권 보호 차원에서 필수적이며, 오히려 집중력 향상과 이직률 감소를 통해 장기적으로 생산성 향상에 기여할 수 있다. 선진국들도 이미 이 방향으로 나아가고 있다.',
+  synthesis:
+    '이 논쟁은 단순한 노동시간의 문제가 아니라, 한국 사회가 추구하는 성장 모델과 삶의 가치에 대한 근본적 질문이다. 생산성 향상과 근로자 복지 사이의 균형점을 사회적 합의로 도출해야 하는 과제다.',
 };
 
 // Helper functions
 function getCategoryName(category) {
-  const names = { business: '경제', tech: '기술', policy: '정책', world: '국제' };
+  const names = {
+    business: '경제',
+    tech: '기술',
+    policy: '정책',
+    world: '국제',
+  };
   return names[category] || category;
 }
 
@@ -54,7 +75,9 @@ function renderNewsItem(news) {
       <p style="font-size: 11px; color: #6b7280; margin: 0 0 12px 0;">
         📰 ${original.source}
       </p>
-      ${insight ? `
+      ${
+        insight
+          ? `
       <div style="background: white; padding: 12px; border-radius: 6px;">
         <p style="font-size: 13px; color: #374151; margin: 0 0 8px 0; line-height: 1.5;">
           <span style="color: #3b82f6; font-weight: 600;">📍 Fact:</span> ${insight.fact}
@@ -66,7 +89,9 @@ function renderNewsItem(news) {
           <span style="color: #10b981; font-weight: 600;">📍 Implication:</span> ${insight.implication}
         </p>
       </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }
@@ -163,13 +188,18 @@ const html = `
     </div>
 
     <!-- Footer -->
-    <div style="background-color: #f8f9fa; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <div style="background-color: #f8f9fa; padding: 24px 16px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
         NoCan News는 AI가 큐레이션하는 뉴스레터입니다.
       </p>
-      <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+      <p style="color: #9ca3af; font-size: 11px; margin: 0 0 16px 0;">
         Powered by Gemini AI • Noise Off, Context On
       </p>
+
+      <!-- Unsubscribe Link -->
+      <a href="${mockUnsubscribeUrl}" style="color: #9ca3af; font-size: 11px; text-decoration: underline;">
+        수신거부 (Unsubscribe)
+      </a>
     </div>
 
   </div>
