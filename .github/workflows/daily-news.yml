@@ -32,4 +32,7 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           NEWSLETTER_DRY_RUN: 'false'
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          WEB_BASE_URL: ${{ secrets.WEB_BASE_URL }}
         run: npm run start:prod
