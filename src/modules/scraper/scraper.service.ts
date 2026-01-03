@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { JSDOM } from 'jsdom';
+import { DevModeConfig } from '../../common/config/dev-mode.config';
 import { NewsItem, ScrapedNews } from '../../common/interfaces';
 
 @Injectable()
@@ -12,7 +13,10 @@ export class ScraperService {
   private readonly logger = new Logger(ScraperService.name);
   private readonly model: GenerativeModel;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly devModeConfig: DevModeConfig,
+  ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -181,9 +185,59 @@ export class ScraperService {
   }
 
   /**
+   * Arc Publishing (Fusion) 사이트에서 JSON으로 본문 추출
+   * 조선일보, 조선비즈 등 Fusion 플랫폼 사용 사이트 대응
+   */
+  private extractFromFusionJson(html: string): string | null {
+    try {
+      // Fusion.globalContent JSON 찾기
+      const fusionMatch = html.match(
+        /Fusion\.globalContent\s*=\s*(\{[\s\S]*?\});?\s*Fusion\./,
+      );
+      if (!fusionMatch) {
+        return null;
+      }
+
+      const jsonStr = fusionMatch[1];
+      const globalContent = JSON.parse(jsonStr);
+
+      // content_elements 배열에서 텍스트 추출
+      const contentElements = globalContent.content_elements;
+      if (!Array.isArray(contentElements)) {
+        return null;
+      }
+
+      const textContents = contentElements
+        .filter(
+          (el: { type: string; content?: string }) =>
+            el.type === 'text' && el.content,
+        )
+        .map((el: { content: string }) => el.content)
+        .join('\n\n');
+
+      if (textContents.length >= 100) {
+        this.logger.debug(
+          `Fusion JSON extracted: ${textContents.length} chars`,
+        );
+        return textContents;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * AI를 사용하여 HTML에서 본문 추출 (Readability 실패 시 fallback)
    */
   private async extractContentWithAI(html: string): Promise<string | null> {
+    // DEV MODE: AI 비활성화 시 스킵
+    if (!this.devModeConfig.isAiEnabled) {
+      this.logger.log('[DEV] AI fallback disabled - skipping');
+      return null;
+    }
+
     if (!this.model) {
       this.logger.warn('AI fallback skipped: model not initialized');
       return null;
@@ -228,9 +282,24 @@ ${html.slice(0, 15000)}`;
    * 뉴스 기사 본문 스크래핑 (Readability → AI fallback)
    */
   async scrapeArticle(url: string): Promise<string> {
+    const isVerbose = this.devModeConfig.verboseLogging;
+
+    if (isVerbose) {
+      this.logger.log(`--- Scraping: ${url} ---`);
+    }
+
     try {
       const actualUrl = await this.resolveGoogleNewsUrl(url);
-      this.logger.debug(`Scraping: ${actualUrl}`);
+      const urlDecodeSuccess = actualUrl !== url;
+
+      if (isVerbose) {
+        this.logger.log(`  Resolved URL: ${actualUrl}`);
+        this.logger.log(
+          `  URL Decode: ${urlDecodeSuccess ? 'SUCCESS' : 'SAME (direct URL)'}`,
+        );
+      } else {
+        this.logger.debug(`Scraping: ${actualUrl}`);
+      }
 
       const response = await axios.get<string>(actualUrl, {
         timeout: 15000,
@@ -245,26 +314,85 @@ ${html.slice(0, 15000)}`;
 
       const html = response.data;
 
+      if (isVerbose) {
+        this.logger.log(`  HTML Length: ${html.length} chars`);
+      }
+
       // 1. Readability로 본문 추출 시도
       const dom = new JSDOM(html, { url: actualUrl });
       const reader = new Readability(dom.window.document);
       const article = reader.parse();
 
       let content = article?.textContent?.trim() || '';
+      const readabilitySuccess = content.length >= 100;
 
-      // 2. Readability 실패 시 AI fallback
-      if (content.length < 100) {
-        this.logger.debug(`Readability 실패, AI fallback 시도: ${actualUrl}`);
-        const aiContent = await this.extractContentWithAI(html);
-        if (aiContent) {
-          content = aiContent;
-          this.logger.debug(`AI 본문 추출 성공: ${actualUrl}`);
+      if (isVerbose) {
+        if (readabilitySuccess) {
+          this.logger.log(`  [SUCCESS] Readability: ${content.length} chars`);
+        } else {
+          this.logger.log(
+            `  [WARN] Readability failed: ${content.length} chars (< 100)`,
+          );
+        }
+      }
+
+      // 2. Readability 실패 시 Fusion JSON → AI fallback
+      if (!readabilitySuccess) {
+        // 2-1. Fusion JSON 추출 시도 (조선계열 등 Arc Publishing 사이트)
+        const fusionContent = this.extractFromFusionJson(html);
+        if (fusionContent) {
+          content = fusionContent;
+          if (isVerbose) {
+            this.logger.log(`  [SUCCESS] Fusion JSON: ${content.length} chars`);
+          } else {
+            this.logger.debug(`Fusion JSON 본문 추출 성공: ${actualUrl}`);
+          }
+        } else {
+          // 2-2. AI fallback
+          if (isVerbose) {
+            this.logger.log(`  Trying AI fallback...`);
+          } else {
+            this.logger.debug(
+              `Readability 실패, AI fallback 시도: ${actualUrl}`,
+            );
+          }
+
+          const aiContent = await this.extractContentWithAI(html);
+          if (aiContent) {
+            content = aiContent;
+            if (isVerbose) {
+              this.logger.log(
+                `  [SUCCESS] AI fallback: ${content.length} chars`,
+              );
+            } else {
+              this.logger.debug(`AI 본문 추출 성공: ${actualUrl}`);
+            }
+          } else if (isVerbose) {
+            this.logger.log(`  [FAIL] AI fallback returned null`);
+          }
         }
       }
 
       // 최소 길이 확인
       if (content.length < 100) {
-        this.logger.warn(`본문 추출 실패: ${actualUrl}`);
+        if (isVerbose) {
+          this.logger.log(
+            `  [FAIL] Final content too short: ${content.length} chars`,
+          );
+          this.logger.log(`  Failure Summary:`);
+          this.logger.log(
+            `    - URL decode: ${urlDecodeSuccess ? 'OK' : 'N/A'}`,
+          );
+          this.logger.log(`    - HTML length: ${html.length} chars`);
+          this.logger.log(
+            `    - Readability: ${article ? 'parsed but empty/short' : 'parse failed'}`,
+          );
+          this.logger.log(
+            `    - AI fallback: ${this.devModeConfig.isAiEnabled ? 'failed' : 'disabled'}`,
+          );
+        } else {
+          this.logger.warn(`본문 추출 실패: ${actualUrl}`);
+        }
         return '';
       }
 
@@ -275,7 +403,13 @@ ${html.slice(0, 15000)}`;
 
       return content;
     } catch (error) {
-      this.logger.error(`Failed to scrape: ${url}`, error);
+      if (isVerbose) {
+        this.logger.log(
+          `  [ERROR] Request failed: ${(error as Error).message}`,
+        );
+      } else {
+        this.logger.error(`Failed to scrape: ${url}`, error);
+      }
       return '';
     }
   }

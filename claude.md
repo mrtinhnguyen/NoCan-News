@@ -158,3 +158,72 @@ create table public.subscribers (
 - [ ] GitHub Actions 워크플로우 작성 (`cron: '0 22 * * *'`).
 - [ ] 실제 이메일 발송 테스트 (Whitelist).
 - [ ] Service Launch (MVP Open).
+
+---
+
+## 8. Testing Strategy
+
+### 8.1 Test Simulator (Mock-based Scenarios)
+
+**Location:** `/test-scenarios/`
+
+뉴스레터 생성 파이프라인을 실제 AI/RSS/DB 호출 없이 테스트할 수 있는 시뮬레이터.
+
+**주요 구성요소:**
+- **Fixtures:** Mock 데이터 (RSS, AI 응답, 스크래핑 결과, 구독자 목록)
+- **Mocks:** Mock 서비스 (AiService, RssService, ScraperService, EmailService)
+- **Scenarios:** 5가지 시나리오 (정상, 뉴스 부족, 스크래핑 실패, 인사이트 실패, 사설 누락)
+
+**실행 방법:**
+```bash
+# 개별 시나리오 실행
+npm run scenario 1   # 정상 발송
+npm run scenario 2   # 뉴스 부족 (품질 게이트 차단)
+npm run scenario 3   # 스크래핑 실패 (품질 게이트 차단)
+npm run scenario 4   # AI 인사이트 실패 (경계 케이스)
+npm run scenario 5   # 사설 누락 (정상 발송)
+
+# 전체 시나리오 실행
+npm run scenario all
+```
+
+### 8.2 Quality Gate (품질 게이트)
+
+뉴스레터 발송 전 품질 검증 기준:
+
+| 검증 항목 | 기준 | 실패 시 동작 |
+|-----------|------|-------------|
+| 뉴스 개수 | 8개 이상 | 이메일 발송 중단 |
+| 스크래핑 성공률 | 60% 이상 | 이메일 발송 중단 |
+| AI 인사이트 | 실패 시 해당 기사만 제외 | 계속 진행 |
+| 사설 매칭 | 선택 사항 | 없어도 발송 |
+
+### 8.3 Development Workflow
+
+**⚠️ IMPORTANT: 새로운 기능 추가 시 필수 작업**
+
+1. **인터페이스 변경 시:**
+   - `src/common/interfaces/` 수정 후 반드시 해당 Mock fixture 업데이트
+   - 예: `SelectionResult` 변경 → `test-scenarios/fixtures/ai-responses.fixture.ts` 수정
+
+2. **서비스 로직 변경 시:**
+   - Mock 서비스의 메서드 시그니처 동기화 필수
+   - 예: `AiService.selectNewsForCategory()` 변경 → `MockAiService` 동일하게 수정
+
+3. **새로운 실패 케이스 추가 시:**
+   - `/test-scenarios/scenarios/` 에 새 시나리오 추가
+   - `/test-scenarios/run-scenario.ts` 에 시나리오 등록
+
+4. **품질 게이트 기준 변경 시:**
+   - `NewsletterService.validateQualityGate()` 수정
+   - 관련 시나리오의 `expectedResult` 업데이트
+
+**테스트 실행 주기:**
+- 기능 추가/수정 후 즉시 `npm run scenario all` 실행
+- PR 생성 전 필수 검증
+- GitHub Actions에서 자동 실행 (추후 추가 예정)
+
+**Mock 데이터 관리:**
+- Fixture는 실제 인터페이스와 100% 일치해야 함
+- TypeScript 컴파일 에러 발생 시 즉시 수정
+- Mock 데이터는 실제 API 응답을 최대한 반영

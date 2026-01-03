@@ -1,6 +1,7 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DevModeConfig } from '../../common/config/dev-mode.config';
 import { NewsCategory } from '../../common/constants';
 import {
   Editorial,
@@ -18,13 +19,18 @@ export class AiService {
   private readonly genAI: GoogleGenerativeAI;
   private readonly model: GenerativeModel;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly devModeConfig: DevModeConfig,
+  ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-    if (!apiKey) {
+    if (!apiKey && this.devModeConfig.isAiEnabled) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    if (apiKey) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    }
   }
 
   /**
@@ -46,6 +52,34 @@ export class AiService {
           blocked: { crime: 0, gossip: 0, politicalStrife: 0 },
         },
         selectedIndices: [],
+      };
+    }
+
+    // DEV MODE: AI 스킵 - 처음 3개 자동 선택
+    if (!this.devModeConfig.isAiEnabled) {
+      const selectedCount = Math.min(3, newsItems.length);
+      const selectedIndices = Array.from(
+        { length: selectedCount },
+        (_, i) => i,
+      );
+
+      this.logger.log(`[DEV] Skipping AI selection for ${category}`);
+      this.logger.log(
+        `[DEV] Auto-selecting first ${selectedCount} items: [${selectedIndices.join(', ')}]`,
+      );
+
+      if (this.devModeConfig.verboseLogging) {
+        selectedIndices.forEach((idx) => {
+          this.logger.log(`  [SELECTED] ${newsItems[idx]?.title}`);
+        });
+      }
+
+      return {
+        filterStats: {
+          scanned: newsItems.length,
+          blocked: { crime: 0, gossip: 0, politicalStrife: 0 },
+        },
+        selectedIndices,
       };
     }
 
@@ -138,6 +172,29 @@ export class AiService {
       return [];
     }
 
+    // DEV MODE: AI 스킵 - 원본 제목 + 플레이스홀더 인사이트
+    if (!this.devModeConfig.isAiEnabled) {
+      this.logger.log('[DEV] Skipping AI insights generation');
+      this.logger.log('[DEV] Using original titles with placeholder insights');
+
+      return scrapedNews.map((news: ScrapedNews) => {
+        if (this.devModeConfig.verboseLogging) {
+          this.logger.log(`  [DEV] ${news.title}`);
+          this.logger.log(`        Content: ${news.content.slice(0, 100)}...`);
+        }
+
+        return {
+          detoxedTitle: `[DEV] ${news.title}`,
+          insight: {
+            fact: `[DEV MODE] 본문 미리보기: ${news.content.slice(0, 150)}...`,
+            context:
+              '[DEV MODE] AI 분석이 비활성화되어 있습니다. DEV_AI_ENABLED=true로 설정하세요.',
+            implication: '[DEV MODE] 실제 인사이트를 보려면 AI를 활성화하세요.',
+          },
+        };
+      });
+    }
+
     const newsListText = scrapedNews
       .map(
         (item: ScrapedNews, idx: number) =>
@@ -219,6 +276,41 @@ ${newsListText}
     if (conservative.length === 0 || liberal.length === 0) {
       this.logger.warn('No editorials to match');
       return null;
+    }
+
+    // DEV MODE: AI 스킵 - 첫 번째 사설끼리 mock 매칭
+    if (!this.devModeConfig.isAiEnabled) {
+      this.logger.log('[DEV] Using mock editorial matching (first pair)');
+
+      if (this.devModeConfig.verboseLogging) {
+        this.logger.log('[DEV] Conservative editorials:');
+        conservative.slice(0, 3).forEach((e, i) => {
+          this.logger.log(`  [${i}] ${e.title}`);
+          this.logger.log(`      Link: ${e.link}`);
+        });
+        if (conservative.length > 3) {
+          this.logger.log(`  ... and ${conservative.length - 3} more`);
+        }
+        this.logger.log('[DEV] Liberal editorials:');
+        liberal.slice(0, 3).forEach((e, i) => {
+          this.logger.log(`  [${i}] ${e.title}`);
+          this.logger.log(`      Link: ${e.link}`);
+        });
+        if (liberal.length > 3) {
+          this.logger.log(`  ... and ${liberal.length - 3} more`);
+        }
+      }
+
+      // Mock 매칭: 첫 번째 사설끼리 매칭 (스크래핑 테스트용)
+      const mockMatch = {
+        conservativeIdx: 0,
+        liberalIdx: 0,
+        topic: '[DEV] Mock 매칭 - 사설 스크래핑 테스트',
+      };
+      this.logger.log(
+        `[DEV] Mock matched: "${conservative[0].title}" vs "${liberal[0].title}"`,
+      );
+      return mockMatch;
     }
 
     const conservativeList = conservative
@@ -303,6 +395,30 @@ null`;
     topic: string,
   ): Promise<EditorialSynthesis> {
     this.logger.log(`Synthesizing editorials on topic: ${topic}`);
+
+    // DEV MODE: AI 스킵 - mock 통합 분석 반환
+    if (!this.devModeConfig.isAiEnabled) {
+      this.logger.log('[DEV] Using mock editorial synthesis');
+
+      if (this.devModeConfig.verboseLogging) {
+        this.logger.log(
+          `[DEV] Conservative text preview: ${conservativeText.slice(0, 200)}...`,
+        );
+        this.logger.log(
+          `[DEV] Liberal text preview: ${liberalText.slice(0, 200)}...`,
+        );
+      }
+
+      return {
+        topic: `[DEV] ${topic}`,
+        conflict:
+          '[DEV MODE] AI 분석이 비활성화되어 있습니다. 실제 쟁점 분석을 보려면 DEV_AI_ENABLED=true로 설정하세요.',
+        argumentA: `[DEV] 보수 사설 본문 길이: ${conservativeText.length}자`,
+        argumentB: `[DEV] 진보 사설 본문 길이: ${liberalText.length}자`,
+        synthesis:
+          '[DEV MODE] 사설 스크래핑 성공 여부를 확인하기 위한 테스트 모드입니다.',
+      };
+    }
 
     const prompt = `당신은 중립적인 정치 분석가입니다. 같은 주제에 대한 보수와 진보 사설을 분석합니다.
 

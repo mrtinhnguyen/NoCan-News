@@ -1,0 +1,16 @@
+{
+  "name": "test-scenarios",
+  "version": "1.0.0",
+  "description": "Test scenarios for NoCan News quality gate and metrics",
+  "scripts": {
+    "scenario": "ts-node run-scenario.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/testing": "^11.0.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

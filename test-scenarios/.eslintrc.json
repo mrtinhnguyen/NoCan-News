@@ -1,0 +1,9 @@
+{
+  "parserOptions": {
+    "project": "./tsconfig.json",
+    "tsconfigRootDir": "."
+  },
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off"
+  }
+}

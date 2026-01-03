@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Parser from 'rss-parser';
+import { DevModeConfig } from '../../common/config/dev-mode.config';
 import {
   CUSTOM_QUERIES,
   EditorialStance,
@@ -20,7 +21,7 @@ export class RssService {
   private readonly logger = new Logger(RssService.name);
   private readonly parser: Parser;
 
-  constructor() {
+  constructor(private readonly devModeConfig: DevModeConfig) {
     this.parser = new Parser();
   }
 
@@ -34,13 +35,28 @@ export class RssService {
     try {
       const feed = await this.parser.parseURL(url);
 
-      return feed.items.map((item: RssItem) => ({
+      const items = feed.items.map((item: RssItem) => ({
         title: item.title || '',
         link: item.link || '',
         pubDate: item.pubDate || '',
         snippet: item.contentSnippet || '',
         category,
       }));
+
+      // DEV MODE: 상세 로그
+      if (this.devModeConfig.verboseLogging) {
+        this.logger.log(`=== ${category.toUpperCase()} RSS Feed ===`);
+        this.logger.log(`Total items: ${items.length}`);
+        const showCount = Math.min(5, items.length);
+        items.slice(0, showCount).forEach((item, i) => {
+          this.logger.log(`  [${i}] ${item.title}`);
+        });
+        if (items.length > showCount) {
+          this.logger.log(`  ... and ${items.length - showCount} more`);
+        }
+      }
+
+      return items;
     } catch (error) {
       this.logger.error(`Failed to fetch RSS from ${url}`, error);
       return [];
@@ -140,7 +156,16 @@ export class RssService {
 
       this.logger.log(`Fetched ${editorials.length} ${stance} editorials`);
 
-      if (editorials.length > 0) {
+      // DEV MODE: 사설 상세 로그
+      if (this.devModeConfig.verboseLogging) {
+        const stanceLabel =
+          stance === 'conservative' ? '보수 (조중동)' : '진보 (한경오)';
+        this.logger.log(`=== ${stanceLabel} 사설 ===`);
+        editorials.forEach((e, i) => {
+          this.logger.log(`  [${i}] ${e.title}`);
+          this.logger.log(`      Link: ${e.link}`);
+        });
+      } else if (editorials.length > 0) {
         this.logger.debug(`Sample: ${editorials[0].title}`);
       }
 

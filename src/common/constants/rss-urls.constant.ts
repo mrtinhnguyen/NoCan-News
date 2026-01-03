@@ -31,14 +31,14 @@ export const CUSTOM_QUERIES = {
     '정책 OR 입법 OR 제도 OR 인구 OR 노동 OR 교육 -사고 -사망 -포토 -부고 when:1d',
   ),
 
-  // 사설 - 보수 (조선일보, 중앙일보)
+  // 사설 - 보수 (조선일보, 중앙일보, 동아일보)
   EDITORIAL_CONSERVATIVE: encodeURIComponent(
-    'site:chosun.com OR site:joongang.co.kr 사설 when:2d',
+    'site:chosun.com OR site:joongang.co.kr OR site:donga.com 사설 when:2d',
   ),
 
-  // 사설 - 진보 (한겨레, 경향신문)
+  // 사설 - 진보 (한겨레, 경향신문, 오마이뉴스)
   EDITORIAL_LIBERAL: encodeURIComponent(
-    'site:hani.co.kr OR site:khan.co.kr 사설 when:2d',
+    'site:hani.co.kr OR site:khan.co.kr OR site:ohmynews.com 사설 when:2d',
   ),
 };
 

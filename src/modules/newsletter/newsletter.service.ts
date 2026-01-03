@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { DevModeConfig } from '../../common/config/dev-mode.config';
 import { NewsCategory } from '../../common/constants';
 import {
   Editorial,
@@ -20,6 +21,41 @@ interface CategoryData {
   items: NewsItem[];
 }
 
+interface NewsletterMetrics {
+  rss: {
+    totalScanned: number;
+    byCategory: Record<NewsCategory, number>;
+  };
+  aiSelection: {
+    totalFiltered: number;
+    toxicBlocked: {
+      crime: number;
+      gossip: number;
+      politicalStrife: number;
+    };
+    selected: number;
+  };
+  scraping: {
+    attempted: number;
+    succeeded: number;
+    successRate: number;
+  };
+  insights: {
+    attempted: number;
+    succeeded: number;
+    failed: number;
+  };
+  editorial: {
+    matchFound: boolean;
+    synthesisSuccess: boolean;
+  };
+  final: {
+    newsCount: number;
+    qualityGatePassed: boolean;
+    failureReason?: string;
+  };
+}
+
 @Injectable()
 export class NewsletterService {
   private readonly logger = new Logger(NewsletterService.name);
@@ -29,6 +65,7 @@ export class NewsletterService {
     private readonly aiService: AiService,
     private readonly emailService: EmailService,
     private readonly scraperService: ScraperService,
+    private readonly devModeConfig: DevModeConfig,
   ) {}
 
   /**
@@ -42,12 +79,39 @@ export class NewsletterService {
    * 5. HTML 렌더링 및 이메일 발송
    */
   async run(): Promise<void> {
+    // DEV MODE: 시작 배너 출력
+    this.devModeConfig.printBanner();
+
     this.logger.log('=== NoCan News Newsletter Generation Started ===');
+
+    const metrics: NewsletterMetrics = {
+      rss: { totalScanned: 0, byCategory: {} as Record<NewsCategory, number> },
+      aiSelection: {
+        totalFiltered: 0,
+        toxicBlocked: { crime: 0, gossip: 0, politicalStrife: 0 },
+        selected: 0,
+      },
+      scraping: { attempted: 0, succeeded: 0, successRate: 0 },
+      insights: { attempted: 0, succeeded: 0, failed: 0 },
+      editorial: { matchFound: false, synthesisSuccess: false },
+      final: { newsCount: 0, qualityGatePassed: false },
+    };
 
     try {
       // Step 1: RSS 피드 수집
       this.logger.log('Step 1: Collecting RSS feeds...');
       const categorizedNews = await this.rssService.fetchAllCategories();
+
+      // 메트릭 기록
+      metrics.rss.byCategory.business = categorizedNews.business.length;
+      metrics.rss.byCategory.tech = categorizedNews.tech.length;
+      metrics.rss.byCategory.policy = categorizedNews.policy.length;
+      metrics.rss.byCategory.world = categorizedNews.world.length;
+      metrics.rss.totalScanned =
+        categorizedNews.business.length +
+        categorizedNews.tech.length +
+        categorizedNews.policy.length +
+        categorizedNews.world.length;
 
       // Step 2: AI 선별 (카테고리별 병렬 처리)
       this.logger.log('Step 2: AI selecting news from each category...');
@@ -92,10 +156,23 @@ export class NewsletterService {
         }`,
       );
 
+      // 메트릭 기록
+      metrics.aiSelection.totalFiltered = filterStats.totalScanned;
+      metrics.aiSelection.toxicBlocked = filterStats.blocked;
+      metrics.aiSelection.selected = selectedNews.length;
+
       // Step 3: 본문 스크래핑
       this.logger.log('Step 3: Scraping article contents...');
       const allScrapedNews: ScrapedNews[] =
         await this.scraperService.scrapeMultipleArticles(selectedNews);
+
+      // 메트릭 기록
+      metrics.scraping.attempted = selectedNews.length;
+      metrics.scraping.succeeded = allScrapedNews.length;
+      metrics.scraping.successRate =
+        selectedNews.length > 0
+          ? (allScrapedNews.length / selectedNews.length) * 100
+          : 0;
 
       // 카테고리별 상위 3개로 제한
       const scrapedNews: ScrapedNews[] = this.limitByCategory(
@@ -111,18 +188,35 @@ export class NewsletterService {
       const insights: InsightResult[] =
         await this.aiService.generateInsights(scrapedNews);
 
-      // ProcessedNews 형태로 변환
+      // 메트릭 기록 + 실패한 기사 제외
+      metrics.insights.attempted = scrapedNews.length;
+
       const processedNews: ProcessedNews[] = [];
       for (let i = 0; i < scrapedNews.length; i++) {
         const news: ScrapedNews = scrapedNews[i];
         const insight: InsightResult | undefined = insights[i];
-        processedNews.push({
-          original: news,
-          isToxic: false,
-          rewrittenTitle: insight?.detoxedTitle ?? news.title,
-          insight: insight?.insight,
-        });
+
+        // AI 인사이트가 성공한 경우만 포함
+        if (insight && insight.detoxedTitle) {
+          processedNews.push({
+            original: news,
+            isToxic: false,
+            rewrittenTitle: insight.detoxedTitle,
+            insight: insight.insight,
+          });
+          metrics.insights.succeeded++;
+        } else {
+          // 실패한 경우 제외
+          metrics.insights.failed++;
+          this.logger.warn(
+            `Insight generation failed for: ${news.title} - excluding from newsletter`,
+          );
+        }
       }
+
+      this.logger.log(
+        `Final news count after insight filtering: ${processedNews.length}`,
+      );
 
       // Step 5: 사설 통합 분석
       this.logger.log('Step 5: Processing editorials...');
@@ -137,6 +231,7 @@ export class NewsletterService {
 
       // 5-2. AI 매칭 (같은 주제 찾기)
       const match = await this.aiService.matchEditorials(conservative, liberal);
+      metrics.editorial.matchFound = !!match;
 
       if (match) {
         // 5-3. 매칭된 사설 스크래핑
@@ -154,6 +249,7 @@ export class NewsletterService {
             libContent,
             match.topic,
           );
+          metrics.editorial.synthesisSuccess = true;
           this.logger.log(`Editorial synthesis completed: ${match.topic}`);
         } else {
           this.logger.warn('Failed to scrape editorial contents');
@@ -161,6 +257,41 @@ export class NewsletterService {
       } else {
         this.logger.log('No matching editorial pair found for today');
       }
+
+      // Step 5.5: 품질 게이트 검증
+      this.logger.log('Step 5.5: Validating quality gate...');
+
+      metrics.final.newsCount = processedNews.length;
+
+      // 기준 1: 최소 뉴스 개수 (8개)
+      const MIN_NEWS_COUNT = 8;
+      if (processedNews.length < MIN_NEWS_COUNT) {
+        metrics.final.qualityGatePassed = false;
+        metrics.final.failureReason = `Insufficient news count: ${processedNews.length} < ${MIN_NEWS_COUNT}`;
+        this.logMetrics(metrics);
+        this.logger.error(
+          `❌ Quality Gate Failed: ${metrics.final.failureReason}`,
+        );
+        this.logger.warn('Newsletter generation aborted - not sending email');
+        return;
+      }
+
+      // 기준 2: 스크래핑 성공률 (60%)
+      const MIN_SCRAPING_SUCCESS_RATE = 60;
+      if (metrics.scraping.successRate < MIN_SCRAPING_SUCCESS_RATE) {
+        metrics.final.qualityGatePassed = false;
+        metrics.final.failureReason = `Low scraping success rate: ${metrics.scraping.successRate.toFixed(1)}% < ${MIN_SCRAPING_SUCCESS_RATE}%`;
+        this.logMetrics(metrics);
+        this.logger.error(
+          `❌ Quality Gate Failed: ${metrics.final.failureReason}`,
+        );
+        this.logger.warn('Newsletter generation aborted - not sending email');
+        return;
+      }
+
+      // 품질 게이트 통과
+      metrics.final.qualityGatePassed = true;
+      this.logger.log('✅ Quality Gate Passed');
 
       // Step 6: 뉴스레터 데이터 구성
       this.logger.log('Step 6: Building newsletter data...');
@@ -204,12 +335,15 @@ export class NewsletterService {
       // Step 7: Email Sending
       this.logger.log('Step 7: Sending newsletter email...');
 
-      // Check dry-run mode
-      const isDryRun = process.env.NEWSLETTER_DRY_RUN === 'true';
-      if (isDryRun) {
-        this.logger.warn('🔴 DRY-RUN MODE: Email sending disabled');
+      // Check dry-run mode (DEV_MODE or NEWSLETTER_DRY_RUN)
+      if (this.devModeConfig.skipEmail) {
+        if (this.devModeConfig.isDevMode) {
+          this.logger.warn('[DEV] Email sending disabled in dev mode');
+        } else {
+          this.logger.warn('🔴 DRY-RUN MODE: Email sending disabled');
+        }
         this.logger.log(
-          'To enable email sending, set NEWSLETTER_DRY_RUN=false',
+          'To enable email sending, set NEWSLETTER_DRY_RUN=false and DEV_MODE=false',
         );
       } else {
         try {
@@ -244,9 +378,13 @@ export class NewsletterService {
         }
       }
 
+      // Step 8: 최종 메트릭 출력
+      this.logMetrics(metrics);
+
       this.logger.log('=== NoCan News Newsletter Generation Completed ===');
     } catch (error) {
       this.logger.error('Newsletter generation failed', error);
+      this.logMetrics(metrics);
       throw error;
     }
   }
@@ -269,5 +407,81 @@ export class NewsletterService {
     }
 
     return result;
+  }
+
+  /**
+   * 메트릭을 로그로 출력
+   */
+  private logMetrics(metrics: NewsletterMetrics): void {
+    this.logger.log('');
+    this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.logger.log('📊 Newsletter Generation Metrics');
+    this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // RSS 수집
+    this.logger.log('');
+    this.logger.log('📰 RSS Collection:');
+    this.logger.log(`   Total Scanned: ${metrics.rss.totalScanned}`);
+    this.logger.log(`   Business: ${metrics.rss.byCategory.business || 0}`);
+    this.logger.log(`   Tech: ${metrics.rss.byCategory.tech || 0}`);
+    this.logger.log(`   Policy: ${metrics.rss.byCategory.policy || 0}`);
+    this.logger.log(`   World: ${metrics.rss.byCategory.world || 0}`);
+
+    // AI 선별 (독성 필터)
+    this.logger.log('');
+    this.logger.log('🤖 AI Selection (Toxicity Filter):');
+    this.logger.log(`   Total Filtered: ${metrics.aiSelection.totalFiltered}`);
+    this.logger.log(
+      `   Toxic Blocked: ${
+        metrics.aiSelection.toxicBlocked.crime +
+        metrics.aiSelection.toxicBlocked.gossip +
+        metrics.aiSelection.toxicBlocked.politicalStrife
+      } (Crime: ${metrics.aiSelection.toxicBlocked.crime}, Gossip: ${
+        metrics.aiSelection.toxicBlocked.gossip
+      }, Political: ${metrics.aiSelection.toxicBlocked.politicalStrife})`,
+    );
+    this.logger.log(`   Selected: ${metrics.aiSelection.selected}`);
+
+    // 스크래핑
+    this.logger.log('');
+    this.logger.log('📄 Scraping:');
+    this.logger.log(`   Attempted: ${metrics.scraping.attempted}`);
+    this.logger.log(`   Succeeded: ${metrics.scraping.succeeded}`);
+    this.logger.log(
+      `   Success Rate: ${metrics.scraping.successRate.toFixed(1)}%`,
+    );
+
+    // AI 인사이트
+    this.logger.log('');
+    this.logger.log('💡 AI Insights:');
+    this.logger.log(`   Attempted: ${metrics.insights.attempted}`);
+    this.logger.log(`   Succeeded: ${metrics.insights.succeeded}`);
+    this.logger.log(`   Failed (Excluded): ${metrics.insights.failed}`);
+
+    // 사설
+    this.logger.log('');
+    this.logger.log('📝 Editorial Analysis:');
+    this.logger.log(
+      `   Match Found: ${metrics.editorial.matchFound ? 'Yes' : 'No'}`,
+    );
+    if (metrics.editorial.matchFound) {
+      this.logger.log(
+        `   Synthesis Success: ${metrics.editorial.synthesisSuccess ? 'Yes' : 'No'}`,
+      );
+    }
+
+    // 최종 결과
+    this.logger.log('');
+    this.logger.log('✨ Final Result:');
+    this.logger.log(`   News Count: ${metrics.final.newsCount}`);
+    this.logger.log(
+      `   Quality Gate: ${metrics.final.qualityGatePassed ? '✅ PASSED' : '❌ FAILED'}`,
+    );
+    if (metrics.final.failureReason) {
+      this.logger.log(`   Failure Reason: ${metrics.final.failureReason}`);
+    }
+
+    this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.logger.log('');
   }
 }
