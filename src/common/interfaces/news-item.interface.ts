@@ -43,7 +43,7 @@ export interface FilterStats {
 export interface CategorizedNews {
   business: NewsItem[];
   tech: NewsItem[];
-  policy: NewsItem[];
+  society: NewsItem[];
   world: NewsItem[];
 }
 

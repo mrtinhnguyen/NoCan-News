@@ -97,16 +97,12 @@ export class RssService {
   }
 
   /**
-   * 정책 뉴스 수집 (Custom Query)
+   * 사회 뉴스 수집 (대한민국 카테고리)
    */
-  async fetchPolicyNews(): Promise<NewsItem[]> {
-    this.logger.log('Fetching policy news...');
-    const url = GOOGLE_RSS_URLS.SEARCH_BASE.replace(
-      '{KEYWORD}',
-      CUSTOM_QUERIES.POLICY,
-    );
-    const items = await this.fetchRss(url, 'policy');
-    this.logger.log(`Fetched ${items.length} policy news items`);
+  async fetchSocietyNews(): Promise<NewsItem[]> {
+    this.logger.log('Fetching society news (Korea category)...');
+    const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_KOREA, 'society');
+    this.logger.log(`Fetched ${items.length} society news items`);
 
     if (items.length > 0) {
       this.logger.debug(`Sample: ${items[0].title}`);
@@ -182,19 +178,19 @@ export class RssService {
   async fetchAllCategories(): Promise<CategorizedNews> {
     this.logger.log('Fetching all news categories...');
 
-    const [business, tech, policy, world] = await Promise.all([
+    const [business, tech, society, world] = await Promise.all([
       this.fetchBusinessNews(),
       this.fetchTechNews(),
-      this.fetchPolicyNews(),
+      this.fetchSocietyNews(),
       this.fetchWorldNews(),
     ]);
 
-    const total = business.length + tech.length + policy.length + world.length;
+    const total = business.length + tech.length + society.length + world.length;
     this.logger.log(`Total fetched: ${total} news items`);
     this.logger.log(
-      `  - Business: ${business.length}, Tech: ${tech.length}, Policy: ${policy.length}, World: ${world.length}`,
+      `  - Business: ${business.length}, Tech: ${tech.length}, Society: ${society.length}, World: ${world.length}`,
     );
 
-    return { business, tech, policy, world };
+    return { business, tech, society, world };
   }
 }

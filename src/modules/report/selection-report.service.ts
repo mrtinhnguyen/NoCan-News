@@ -22,7 +22,7 @@ export class SelectionReportService {
   private readonly categoryLabels: Record<NewsCategory, string> = {
     business: '비즈니스/경제',
     tech: '기술/과학',
-    policy: '정책/사회',
+    society: '사회',
     world: '국제/세계',
   };
 
@@ -47,10 +47,10 @@ export class SelectionReportService {
         selectionResult: selectionResults.get('tech')!,
       },
       {
-        category: 'policy',
-        categoryLabel: this.categoryLabels.policy,
-        items: categorizedNews.policy,
-        selectionResult: selectionResults.get('policy')!,
+        category: 'society',
+        categoryLabel: this.categoryLabels.society,
+        items: categorizedNews.society,
+        selectionResult: selectionResults.get('society')!,
       },
       {
         category: 'world',

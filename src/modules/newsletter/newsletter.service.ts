@@ -108,12 +108,12 @@ export class NewsletterService {
       // 메트릭 기록
       metrics.rss.byCategory.business = categorizedNews.business.length;
       metrics.rss.byCategory.tech = categorizedNews.tech.length;
-      metrics.rss.byCategory.policy = categorizedNews.policy.length;
+      metrics.rss.byCategory.society = categorizedNews.society.length;
       metrics.rss.byCategory.world = categorizedNews.world.length;
       metrics.rss.totalScanned =
         categorizedNews.business.length +
         categorizedNews.tech.length +
-        categorizedNews.policy.length +
+        categorizedNews.society.length +
         categorizedNews.world.length;
 
       // Step 2: AI 선별 (카테고리별 병렬 처리)
@@ -121,7 +121,7 @@ export class NewsletterService {
       const categories: CategoryData[] = [
         { key: 'business', items: categorizedNews.business },
         { key: 'tech', items: categorizedNews.tech },
-        { key: 'policy', items: categorizedNews.policy },
+        { key: 'society', items: categorizedNews.society },
         { key: 'world', items: categorizedNews.world },
       ];
 
@@ -442,7 +442,7 @@ export class NewsletterService {
     this.logger.log(`   Total Scanned: ${metrics.rss.totalScanned}`);
     this.logger.log(`   Business: ${metrics.rss.byCategory.business || 0}`);
     this.logger.log(`   Tech: ${metrics.rss.byCategory.tech || 0}`);
-    this.logger.log(`   Policy: ${metrics.rss.byCategory.policy || 0}`);
+    this.logger.log(`   Society: ${metrics.rss.byCategory.society || 0}`);
     this.logger.log(`   World: ${metrics.rss.byCategory.world || 0}`);
 
     // AI 선별 (독성 필터)

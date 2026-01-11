@@ -42,7 +42,7 @@ export class EmailService {
     const names: Record<string, string> = {
       business: '경제',
       tech: '기술',
-      policy: '정책',
+      society: '사회',
       world: '국제',
     };
     return names[category] || category;
@@ -66,7 +66,7 @@ export class EmailService {
     }
 
     let newsHtml = '';
-    const categoryOrder = ['business', 'tech', 'policy', 'world'];
+    const categoryOrder = ['business', 'tech', 'society', 'world'];
 
     for (const category of categoryOrder) {
       const newsItems = newsByCategory[category];
