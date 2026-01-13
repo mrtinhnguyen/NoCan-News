@@ -156,7 +156,7 @@ const html = `
   <title>NoCan News - ${date}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f5f5f5;">
-  <div style="max-width: 100%; margin: 0 auto; background-color: #ffffff;">
+  <div style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff;">
 
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px 16px; text-align: center;">
