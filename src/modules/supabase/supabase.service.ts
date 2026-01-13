@@ -1,9 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { ContentData } from '../../common/interfaces';
 import { Database, Tables } from '../../common/types/supabase';
 
 export type Subscriber = Tables<'subscribers'>;
+export type Newsletter = Tables<'newsletters'>;
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
@@ -212,5 +214,47 @@ export class SupabaseService implements OnModuleInit {
       inactive,
       total: subscribers.length,
     };
+  }
+
+  /**
+   * Save newsletter to archive
+   */
+  async saveNewsletter(data: {
+    sendDate: Date;
+    title: string;
+    contentHtml: string;
+    contentData: ContentData;
+  }): Promise<void> {
+    const sendDateStr = data.sendDate
+      .toLocaleDateString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      .replace(/\. /g, '-')
+      .replace('.', '');
+
+    // 명시적으로 JSON 직렬화 후 파싱하여 순수 객체만 저장
+    const jsonStr = JSON.stringify(data.contentData);
+    const cleanedData = JSON.parse(jsonStr);
+
+    this.logger.debug(
+      `Saving newsletter content_data (${jsonStr.length} chars), ends with: "${jsonStr.slice(-50)}"`,
+    );
+
+    const { error } = await this.client.from('newsletters').insert({
+      send_date: sendDateStr,
+      title: data.title,
+      content_html: data.contentHtml,
+      content_data: cleanedData,
+    });
+
+    if (error) {
+      this.logger.error(`Failed to save newsletter: ${error.message}`);
+      throw error;
+    }
+
+    this.logger.log(`Newsletter archived for ${sendDateStr}`);
   }
 }

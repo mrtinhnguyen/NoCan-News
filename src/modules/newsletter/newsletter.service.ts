@@ -2,8 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DevModeConfig } from '../../common/config/dev-mode.config';
 import { NewsCategory } from '../../common/constants';
 import {
+  ContentData,
   Editorial,
   EditorialSynthesis,
+  FilterStats,
   InsightResult,
   NewsItem,
   NewsletterData,
@@ -16,6 +18,7 @@ import { EmailService } from '../email/email.service';
 import { SelectionReportService } from '../report/selection-report.service';
 import { RssService } from '../rss/rss.service';
 import { ScraperService } from '../scraper/scraper.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 interface CategoryData {
   key: NewsCategory;
@@ -68,6 +71,7 @@ export class NewsletterService {
     private readonly scraperService: ScraperService,
     private readonly selectionReportService: SelectionReportService,
     private readonly devModeConfig: DevModeConfig,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   /**
@@ -392,7 +396,18 @@ export class NewsletterService {
         }
       }
 
-      // Step 8: 최종 메트릭 출력
+      // Step 8: 아카이브 저장
+      this.logger.log('Step 8: Archiving newsletter...');
+      try {
+        await this.saveToArchive(newsletterData, html, filterStats);
+        this.logger.log('✅ Newsletter archived successfully');
+      } catch (archiveError) {
+        this.logger.error(
+          `❌ Failed to archive newsletter (non-fatal): ${archiveError}`,
+        );
+      }
+
+      // Step 9: 최종 메트릭 출력
       this.logMetrics(metrics);
 
       this.logger.log('=== NoCan News Newsletter Generation Completed ===');
@@ -497,5 +512,68 @@ export class NewsletterService {
 
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     this.logger.log('');
+  }
+
+  /**
+   * 뉴스레터를 아카이브에 저장
+   */
+  private async saveToArchive(
+    data: NewsletterData,
+    html: string,
+    filterStats: FilterStats,
+  ): Promise<void> {
+    const contentData = this.buildContentData(data, filterStats);
+    const title = this.emailService.getEmailSubject();
+
+    await this.supabaseService.saveNewsletter({
+      sendDate: new Date(),
+      title,
+      contentHtml: html,
+      contentData,
+    });
+  }
+
+  /**
+   * NewsletterData를 ContentData 형식으로 변환
+   */
+  private buildContentData(
+    data: NewsletterData,
+    filterStats: FilterStats,
+  ): ContentData {
+    const contentData: ContentData = {
+      filter_stats: {
+        total_scanned: filterStats.totalScanned,
+        blocked_counts: {
+          crime: filterStats.blocked.crime,
+          gossip: filterStats.blocked.gossip,
+          political_noise: filterStats.blocked.politicalStrife,
+        },
+      },
+      news_items: data.processedNews.map((news) => ({
+        category: news.original.category,
+        original_title: news.original.title,
+        refined_title: news.rewrittenTitle ?? news.original.title,
+        link: news.original.link,
+        insight: {
+          fact: news.insight?.fact ?? '',
+          context: news.insight?.context ?? '',
+          implication: news.insight?.implication ?? '',
+        },
+      })),
+    };
+
+    if (data.editorialSynthesis) {
+      contentData.editorial_analysis = {
+        topic: data.editorialSynthesis.topic,
+        key_issue: data.editorialSynthesis.conflict,
+        perspectives: {
+          conservative: data.editorialSynthesis.argumentA,
+          liberal: data.editorialSynthesis.argumentB,
+        },
+        synthesis: data.editorialSynthesis.synthesis,
+      };
+    }
+
+    return contentData;
   }
 }

@@ -49,6 +49,23 @@ export class EmailService {
   }
 
   /**
+   * 이메일 제목 생성
+   */
+  getEmailSubject(): string {
+    const today = new Date()
+      .toLocaleDateString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      .replace(/\. /g, '-')
+      .replace(/\./g, '');
+
+    return `🔇 NoCan News - ${today} | 오늘의 뉴스`;
+  }
+
+  /**
    * 뉴스레터 HTML 렌더링
    * Footer에 {{UNSUBSCRIBE_URL}} 플레이스홀더 포함
    */
@@ -217,15 +234,7 @@ export class EmailService {
 
     const senderEmail = this.configService.get('GMAIL_USER');
     const baseUrl = this.configService.get<string>('WEB_BASE_URL');
-    const today = new Date()
-      .toLocaleDateString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\. /g, '-')
-      .replace(/\./g, ''); // YYYY-MM-DD 형식
+    const subject = this.getEmailSubject();
 
     if (!baseUrl) {
       this.logger.warn(
@@ -257,7 +266,7 @@ export class EmailService {
         await this.transporter.sendMail({
           from: `"NoCan News" <${senderEmail}>`,
           to: recipient.email,
-          subject: `🔇 NoCan News - ${today} | 오늘의 뉴스`,
+          subject,
           html: personalizedHtml,
           headers: {
             'List-Unsubscribe': `<${unsubscribeLink}>`,
