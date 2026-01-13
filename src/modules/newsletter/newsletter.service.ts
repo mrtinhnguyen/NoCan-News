@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DevModeConfig } from '../../common/config/dev-mode.config';
 import { NewsCategory } from '../../common/constants';
 import {
-  CategorizedNews,
   Editorial,
   EditorialSynthesis,
   InsightResult,
@@ -140,7 +139,7 @@ export class NewsletterService {
         });
 
         const reportHtml = this.selectionReportService.generateReport(
-          categorizedNews as CategorizedNews,
+          categorizedNews,
           selectionResultMap,
         );
         const reportPath = this.selectionReportService.saveReport(reportHtml);
@@ -372,10 +371,7 @@ export class NewsletterService {
               '⚠️ No active subscribers found. Skipping email send.',
             );
           } else {
-            const emailList = recipients.map((r) => r.email).join(', ');
-            this.logger.log(
-              `📤 Sending to ${recipients.length} recipient(s): ${emailList}`,
-            );
+            this.logger.log(`📤 Sending to ${recipients.length}`);
 
             await this.emailService.sendNewsletter(recipients, html);
 
