@@ -153,6 +153,9 @@ export class EmailService {
       <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
         ${date}
       </p>
+      <a href="{{ARCHIVE_URL}}" style="display: inline-block; margin-top: 12px; padding: 6px 16px; background-color: rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; text-decoration: none; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);">
+        웹에서 보기
+      </a>
     </div>
 
     <!-- Protection Log -->
@@ -256,11 +259,13 @@ export class EmailService {
           ? `${baseUrl}/unsubscribe?id=${recipient.id}`
           : '#';
 
+        // 아카이브 링크 생성
+        const archiveLink = baseUrl ? `${baseUrl}/archive` : '#';
+
         // HTML 내의 플레이스홀더를 실제 링크로 교체
-        const personalizedHtml = baseHtml.replace(
-          '{{UNSUBSCRIBE_URL}}',
-          unsubscribeLink,
-        );
+        const personalizedHtml = baseHtml
+          .replace('{{UNSUBSCRIBE_URL}}', unsubscribeLink)
+          .replace('{{ARCHIVE_URL}}', archiveLink);
 
         // 개별 발송
         await this.transporter.sendMail({

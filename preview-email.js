@@ -3,6 +3,7 @@ const fs = require('fs');
 // Mock data
 const date = '2025-12-27';
 const mockUnsubscribeUrl = 'https://nocan-news.vercel.app/unsubscribe?id=123';
+const mockArchiveUrl = 'https://nocan-news.vercel.app/archive';
 const protectionLog =
   '오늘 AI가 총 1,247건을 스캔하여 범죄 45건, 가십 89건, 정치적 비방 123건을 차단했습니다.';
 
@@ -169,6 +170,9 @@ const html = `
       <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
         ${date}
       </p>
+      <a href="${mockArchiveUrl}" style="display: inline-block; margin-top: 12px; padding: 6px 16px; background-color: rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; text-decoration: none; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);">
+        웹에서 보기 →
+      </a>
     </div>
 
     <!-- Protection Log -->
