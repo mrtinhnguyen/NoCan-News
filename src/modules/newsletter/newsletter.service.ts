@@ -535,17 +535,18 @@ export class NewsletterService {
       const href = $el.attr('href') || '';
       const text = $el.text();
 
-      // href에 unsubscribe가 포함되어 있거나, 텍스트에 수신거부/Unsubscribe가 있는 경우
+      // 수신거부 또는 웹에서 보기 링크인 경우
       if (
         href.includes('unsubscribe') ||
         href.includes('{{UNSUBSCRIBE_URL}}') ||
         text.includes('수신거부') ||
-        text.includes('Unsubscribe')
+        text.includes('Unsubscribe') ||
+        href.includes('archive') ||
+        href.includes('{{ARCHIVE_URL}}') ||
+        text.includes('웹에서 보기')
       ) {
-        // 링크를 span으로 교체 (클릭 불가능한 텍스트)
-        $el.replaceWith(
-          `<span style="color: #9ca3af; font-size: 11px;">${text}</span>`,
-        );
+        // 링크 요소 완전히 삭제
+        $el.remove();
       }
     });
 
