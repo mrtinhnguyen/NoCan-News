@@ -2,8 +2,8 @@ name: Daily Newsletter
 
 on:
   schedule:
-    # UTC 22:00 = KST 07:00 (다음날)
-    - cron: '0 22 * * *'
+    # UTC 21:30 = KST 06:30 (다음날)
+    - cron: '30 21 * * *'
   workflow_dispatch: # 수동 실행 가능
 
 jobs:
