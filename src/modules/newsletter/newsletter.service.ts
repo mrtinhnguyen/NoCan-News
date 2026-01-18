@@ -213,10 +213,18 @@ export class NewsletterService {
       // 메트릭 기록 + 실패한 기사 제외
       metrics.insights.attempted = scrapedNews.length;
 
+      // 인덱스 기반 Map 생성 (AI가 순서를 바꾸거나 건너뛰어도 안전하게 매핑)
+      const insightMap = new Map<number, InsightResult>();
+      for (const insight of insights) {
+        if (insight.index !== undefined) {
+          insightMap.set(insight.index, insight);
+        }
+      }
+
       const processedNews: ProcessedNews[] = [];
       for (let i = 0; i < scrapedNews.length; i++) {
         const news: ScrapedNews = scrapedNews[i];
-        const insight: InsightResult | undefined = insights[i];
+        const insight: InsightResult | undefined = insightMap.get(i);
 
         // AI 인사이트가 성공한 경우만 포함
         if (insight && insight.detoxedTitle) {
@@ -231,7 +239,7 @@ export class NewsletterService {
           // 실패한 경우 제외
           metrics.insights.failed++;
           this.logger.warn(
-            `Insight generation failed for: ${news.title} - excluding from newsletter`,
+            `Insight generation failed for index ${i}: ${news.title} - excluding from newsletter`,
           );
         }
       }

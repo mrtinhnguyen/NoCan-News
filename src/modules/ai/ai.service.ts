@@ -221,13 +221,14 @@ ${newsListText}
       this.logger.log('[DEV] Skipping AI insights generation');
       this.logger.log('[DEV] Using original titles with placeholder insights');
 
-      return scrapedNews.map((news: ScrapedNews) => {
+      return scrapedNews.map((news: ScrapedNews, idx: number) => {
         if (this.devModeConfig.verboseLogging) {
           this.logger.log(`  [DEV] ${news.title}`);
           this.logger.log(`        Content: ${news.content.slice(0, 100)}...`);
         }
 
         return {
+          index: idx,
           detoxedTitle: `[DEV] ${news.title}`,
           insight: {
             fact: `[DEV MODE] 본문 미리보기: ${news.content.slice(0, 150)}...`,
@@ -268,8 +269,10 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
                     ${newsListText}
 
                     ## 출력 형식 (JSON 배열만 출력)
+                    **중요:** 반드시 입력된 뉴스의 인덱스 번호([0], [1], [2]...)를 "index" 필드에 포함하세요.
                     [
                       {
+                        "index": 0,
                         "detoxedTitle": "건조하게 중화된 제목",
                         "insight": {
                           "fact": "객관적 사실 요약 (1-2문장)",
@@ -294,7 +297,8 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
       return parsed;
     } catch (error) {
       this.logger.error('Failed to generate insights', error);
-      return scrapedNews.map((news: ScrapedNews) => ({
+      return scrapedNews.map((news: ScrapedNews, idx: number) => ({
+        index: idx,
         detoxedTitle: news.title,
         insight: {
           fact: news.snippet || '정보를 불러올 수 없습니다.',

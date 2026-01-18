@@ -73,6 +73,7 @@ export interface ScrapedNews extends NewsItem {
  * AI 인사이트 생성 결과
  */
 export interface InsightResult {
+  index: number; // 입력 뉴스 배열의 인덱스 (AI 응답 매핑용)
   detoxedTitle: string;
   insight: {
     fact: string;
