@@ -1,3 +1,4 @@
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
@@ -22,18 +23,25 @@ export class EmailService {
   }
 
   private initializeTransporter(): void {
-    const user = this.configService.get<string>('GMAIL_USER');
-    const pass = this.configService.get<string>('GMAIL_PASS');
+    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
+    const secretAccessKey = this.configService.get<string>(
+      'AWS_SECRET_ACCESS_KEY',
+    );
+    const region = this.configService.get<string>('AWS_SES_REGION');
 
-    if (user && pass) {
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass },
+    if (accessKeyId && secretAccessKey && region) {
+      const sesClient = new SESv2Client({
+        region,
+        credentials: { accessKeyId, secretAccessKey },
       });
-      this.logger.log('Email transporter initialized');
+
+      this.transporter = nodemailer.createTransport({
+        SES: { sesClient, SendEmailCommand },
+      } as nodemailer.TransportOptions);
+      this.logger.log('AWS SES transporter initialized');
     } else {
       this.logger.warn(
-        'Gmail credentials not configured. Email sending disabled.',
+        'AWS SES credentials not configured. Email sending disabled.',
       );
     }
   }
@@ -235,7 +243,8 @@ export class EmailService {
       throw new Error('Email transporter not configured.');
     }
 
-    const senderEmail = this.configService.get('GMAIL_USER');
+    const senderEmail = this.configService.get('AWS_SES_FROM_EMAIL');
+    const replyToEmail = this.configService.get('REPLY_TO_EMAIL');
     const baseUrl = this.configService.get<string>('WEB_BASE_URL');
     const subject = this.getEmailSubject();
 
@@ -269,8 +278,9 @@ export class EmailService {
 
         // 개별 발송
         await this.transporter.sendMail({
-          from: `"NoCan News" <${senderEmail}>`,
+          from: senderEmail,
           to: recipient.email,
+          replyTo: replyToEmail,
           subject,
           html: personalizedHtml,
           headers: {
@@ -281,9 +291,8 @@ export class EmailService {
 
         successCount++;
 
-        // Gmail 대량 발송 감지 회피를 위한 랜덤 딜레이 (5~15초)
-        const randomDelay = Math.floor(Math.random() * 10000) + 5000;
-        await new Promise((resolve) => setTimeout(resolve, randomDelay));
+        // AWS SES 발송 간격 (초당 14통 허용, 100ms 간격)
+        await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
         failCount++;
         this.logger.error(

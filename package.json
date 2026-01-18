@@ -23,6 +23,7 @@
     "supabase:types": "supabase gen types typescript --linked > src/common/types/supabase.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.971.0",
     "@google/generative-ai": "^0.24.1",
     "@mozilla/readability": "^0.6.0",
     "@nestjs/common": "^11.0.1",
