@@ -48,6 +48,7 @@ interface NewsletterMetrics {
   insights: {
     attempted: number;
     succeeded: number;
+    fallback: number;
     failed: number;
   };
   editorial: {
@@ -99,7 +100,7 @@ export class NewsletterService {
         selected: 0,
       },
       scraping: { attempted: 0, succeeded: 0, successRate: 0 },
-      insights: { attempted: 0, succeeded: 0, failed: 0 },
+      insights: { attempted: 0, succeeded: 0, fallback: 0, failed: 0 },
       editorial: { matchFound: false, synthesisSuccess: false },
       final: { newsCount: 0, qualityGatePassed: false },
     };
@@ -226,7 +227,7 @@ export class NewsletterService {
         const news: ScrapedNews = scrapedNews[i];
         const insight: InsightResult | undefined = insightMap.get(i);
 
-        // AI 인사이트가 성공한 경우만 포함
+        // AI 인사이트가 있는 경우 포함
         if (insight && insight.detoxedTitle) {
           processedNews.push({
             original: news,
@@ -234,9 +235,15 @@ export class NewsletterService {
             rewrittenTitle: insight.detoxedTitle,
             insight: insight.insight,
           });
-          metrics.insights.succeeded++;
+
+          // fallback 여부에 따라 카운트 분리
+          if (insight.isFallback) {
+            metrics.insights.fallback++;
+          } else {
+            metrics.insights.succeeded++;
+          }
         } else {
-          // 실패한 경우 제외
+          // 완전 실패한 경우 제외
           metrics.insights.failed++;
           this.logger.warn(
             `Insight generation failed for index ${i}: ${news.title} - excluding from newsletter`,
@@ -495,6 +502,7 @@ export class NewsletterService {
     this.logger.log('💡 AI Insights:');
     this.logger.log(`   Attempted: ${metrics.insights.attempted}`);
     this.logger.log(`   Succeeded: ${metrics.insights.succeeded}`);
+    this.logger.log(`   Fallback: ${metrics.insights.fallback}`);
     this.logger.log(`   Failed (Excluded): ${metrics.insights.failed}`);
 
     // 사설

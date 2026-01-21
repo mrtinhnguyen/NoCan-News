@@ -11,6 +11,7 @@ import {
   ScrapedNews,
   SelectionResult,
 } from '../../common/interfaces';
+import { withRetry } from '../../common/utils/retry.util';
 
 @Injectable()
 export class AiService {
@@ -283,7 +284,18 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
                     ]`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await withRetry(
+        () => this.model.generateContent(prompt),
+        {
+          maxRetries: 3,
+          baseDelayMs: 1000,
+          onRetry: (attempt, error) => {
+            this.logger.warn(
+              `[Retry ${attempt}/3] generateInsights failed, retrying... Error: ${error.message}`,
+            );
+          },
+        },
+      );
       const responseText = result.response.text();
 
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -296,15 +308,19 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
 
       return parsed;
     } catch (error) {
-      this.logger.error('Failed to generate insights', error);
+      this.logger.error('Failed to generate insights after 3 retries', error);
+      this.logger.warn(
+        `⚠️ FALLBACK APPLIED: Using default values for ${scrapedNews.length} news items`,
+      );
       return scrapedNews.map((news: ScrapedNews, idx: number) => ({
         index: idx,
         detoxedTitle: news.title,
         insight: {
-          fact: news.snippet || '정보를 불러올 수 없습니다.',
-          context: '추가 분석이 필요합니다.',
-          implication: '향후 추이를 지켜볼 필요가 있습니다.',
+          fact: '[AI 분석 실패] 원문 확인 필요',
+          context: '[AI 분석 실패] 원문 확인 필요',
+          implication: '[AI 분석 실패] 원문 확인 필요',
         },
+        isFallback: true,
       }));
     }
   }
@@ -398,7 +414,18 @@ ${liberalList}
 null`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await withRetry(
+        () => this.model.generateContent(prompt),
+        {
+          maxRetries: 3,
+          baseDelayMs: 1000,
+          onRetry: (attempt, error) => {
+            this.logger.warn(
+              `[Retry ${attempt}/3] matchEditorials failed, retrying... Error: ${error.message}`,
+            );
+          },
+        },
+      );
       const responseText = result.response.text().trim();
 
       // null 응답 체크
@@ -433,7 +460,7 @@ null`;
       this.logger.log(`Matched editorials on topic: ${parsed.topic}`);
       return parsed;
     } catch (error) {
-      this.logger.error('Failed to match editorials', error);
+      this.logger.error('Failed to match editorials after 3 retries', error);
       return null;
     }
   }
@@ -495,7 +522,18 @@ ${liberalText.slice(0, 2000)}
 }`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await withRetry(
+        () => this.model.generateContent(prompt),
+        {
+          maxRetries: 3,
+          baseDelayMs: 1000,
+          onRetry: (attempt, error) => {
+            this.logger.warn(
+              `[Retry ${attempt}/3] synthesizeEditorials failed, retrying... Error: ${error.message}`,
+            );
+          },
+        },
+      );
       const responseText = result.response.text();
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -505,7 +543,7 @@ ${liberalText.slice(0, 2000)}
 
       return JSON.parse(jsonMatch[0]) as EditorialSynthesis;
     } catch (error) {
-      this.logger.error('Failed to synthesize editorials', error);
+      this.logger.error('Failed to synthesize editorials after 3 retries', error);
       return null;
     }
   }

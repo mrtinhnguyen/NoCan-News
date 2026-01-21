@@ -80,4 +80,5 @@ export interface InsightResult {
     context: string;
     implication: string;
   };
+  isFallback?: boolean; // AI 실패 시 fallback 값 사용 여부
 }

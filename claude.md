@@ -1,5 +1,9 @@
 # Project: NoCan News (News Noise Canceling)
 
+> **중요:** 프로젝트 구조, 설정, 로직 등에 변경이 있을 때마다 이 문서(CLAUDE.md)도 함께 업데이트해야 합니다.
+
+---
+
 ## 1. Project Overview
 
 - 현재 Production 운영 중
@@ -130,13 +134,18 @@ create table public.subscribers (
 - **Role 1 (Filter/Detox):** `isToxic` 판별 및 건조한 제목 재작성.
 - **Role 2 (Synthesis):** 사설 비교 분석. 감정적 어휘 삭제, 논리적 쟁점 추출.
 
-### 6.3 Gemini API Limits (Free Tier)
+### 6.3 Gemini API 구성
 
-| 제한 항목              | 값   |
-| ---------------------- | ---- |
-| 분당 최대 요청 수      | 5    |
-| 분당 최대 입력 토큰 수 | 250k |
-| 일일 최대 요청 수      | 20   |
+| 환경       | 요금제        | 비고                                      |
+| ---------- | ------------- | ----------------------------------------- |
+| Production | Pay-as-you-go | `GEMINI_API_KEY` 사용, 사용량 기반 과금   |
+| Dev        | Free Tier     | `GEMINI_API_KEY_DEV` 사용, 일일 20회 제한 |
+
+### 6.4 AI 에러 처리 및 재시도
+
+- **재시도 메커니즘:** 모든 AI API 호출에 exponential backoff 적용 (1초 → 2초 → 4초, 최대 3회)
+- **Fallback 처리:** 3회 재시도 후에도 실패 시 기본값 사용, `isFallback: true` 플래그 설정
+- **메트릭 구분:** 성공/Fallback/실패를 분리하여 로그 출력
 
 ---
 
