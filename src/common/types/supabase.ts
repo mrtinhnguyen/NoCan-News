@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       newsletters: {
         Row: {
+          all_keywords: string[]
           content_data: Json
           content_html: string
           created_at: string
@@ -24,6 +25,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          all_keywords?: string[]
           content_data: Json
           content_html: string
           created_at?: string
@@ -32,6 +34,7 @@ export type Database = {
           title: string
         }
         Update: {
+          all_keywords?: string[]
           content_data?: Json
           content_html?: string
           created_at?: string
@@ -40,6 +43,76 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      issue_tracks: {
+        Row: {
+          id: string
+          keyword: string
+          display_title: string
+          is_active: boolean
+          last_report_html: string | null
+          last_report_data: Json | null
+          last_updated_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          keyword: string
+          display_title: string
+          is_active?: boolean
+          last_report_html?: string | null
+          last_report_data?: Json | null
+          last_updated_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          keyword?: string
+          display_title?: string
+          is_active?: boolean
+          last_report_html?: string | null
+          last_report_data?: Json | null
+          last_updated_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      payment_intent_logs: {
+        Row: {
+          id: string
+          issue_track_id: string | null
+          target_issue: string
+          ip_address: string | null
+          user_agent: string | null
+          referrer: string | null
+          clicked_at: string
+        }
+        Insert: {
+          id?: string
+          issue_track_id?: string | null
+          target_issue: string
+          ip_address?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          clicked_at?: string
+        }
+        Update: {
+          id?: string
+          issue_track_id?: string | null
+          target_issue?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          clicked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_intent_logs_issue_track_id_fkey"
+            columns: ["issue_track_id"]
+            referencedRelation: "issue_tracks"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       subscribers: {
         Row: {

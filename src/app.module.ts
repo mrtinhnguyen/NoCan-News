@@ -6,6 +6,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { ScraperModule } from './modules/scraper/scraper.module';
+import { IssueTrackingModule } from './modules/issue-tracking/issue-tracking.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ScraperModule } from './modules/scraper/scraper.module';
     EmailModule,
     NewsletterModule,
     ScraperModule,
+    IssueTrackingModule,
   ],
 })
 export class AppModule {}

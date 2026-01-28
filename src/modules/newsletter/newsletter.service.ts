@@ -413,10 +413,33 @@ export class NewsletterService {
         }
       }
 
-      // Step 8: 아카이브 저장
-      this.logger.log('Step 8: Archiving newsletter...');
+      // Step 8: 키워드 추출 및 아카이브 저장
+      this.logger.log(
+        'Step 8: Extracting keywords and archiving newsletter...',
+      );
       try {
-        await this.saveToArchive(newsletterData, html, filterStats);
+        // 기존 키워드 조회 (일관성 유지를 위해)
+        const existingKeywords =
+          await this.supabaseService.getAllExistingKeywords();
+
+        // 키워드 추출 (이슈 추적용 - 기존 키워드 참조, 기사별 매핑)
+        const keywordResult = await this.aiService.extractKeywords(
+          processedNews.map((news) => ({
+            title: news.rewrittenTitle ?? news.original.title,
+            insight: news.insight,
+          })),
+          existingKeywords,
+        );
+        this.logger.log(
+          `Extracted ${keywordResult.all.length} keywords for issue tracking`,
+        );
+
+        await this.saveToArchive(
+          newsletterData,
+          html,
+          filterStats,
+          keywordResult,
+        );
         this.logger.log('✅ Newsletter archived successfully');
       } catch (archiveError) {
         this.logger.error(
@@ -539,8 +562,16 @@ export class NewsletterService {
     data: NewsletterData,
     html: string,
     filterStats: FilterStats,
+    keywordResult: { perArticle: string[][]; all: string[] } = {
+      perArticle: [],
+      all: [],
+    },
   ): Promise<void> {
-    const contentData = this.buildContentData(data, filterStats);
+    const contentData = this.buildContentData(
+      data,
+      filterStats,
+      keywordResult.perArticle,
+    );
     const title = this.emailService.getEmailSubject();
 
     // 수신거부 링크 제거 (cheerio로 HTML 파싱하여 안정적으로 처리)
@@ -574,6 +605,7 @@ export class NewsletterService {
       title,
       contentHtml: archivedHtml,
       contentData,
+      allKeywords: keywordResult.all,
     });
   }
 
@@ -583,6 +615,7 @@ export class NewsletterService {
   private buildContentData(
     data: NewsletterData,
     filterStats: FilterStats,
+    perArticleKeywords: string[][] = [],
   ): ContentData {
     const contentData: ContentData = {
       filter_stats: {
@@ -593,11 +626,12 @@ export class NewsletterService {
           political_noise: filterStats.blocked.politicalStrife,
         },
       },
-      news_items: data.processedNews.map((news) => ({
+      news_items: data.processedNews.map((news, idx) => ({
         category: news.original.category,
         original_title: news.original.title,
         refined_title: news.rewrittenTitle ?? news.original.title,
         link: news.original.link,
+        keywords: perArticleKeywords[idx] ?? [],
         insight: {
           fact: news.insight?.fact ?? '',
           context: news.insight?.context ?? '',

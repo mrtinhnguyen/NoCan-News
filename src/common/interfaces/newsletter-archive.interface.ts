@@ -23,6 +23,7 @@ export interface NewsItemData {
   refined_title: string;
   link: string;
   insight: InsightData;
+  keywords?: string[];
 }
 
 export interface PerspectivesData {
@@ -41,4 +42,5 @@ export interface ContentData {
   filter_stats: FilterStatsData;
   news_items: NewsItemData[];
   editorial_analysis?: EditorialAnalysisData;
+  all_keywords?: string[];
 }

@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ContentData } from '../../common/interfaces';
-import { Database, Tables } from '../../common/types/supabase';
+import { Database, Json, Tables } from '../../common/types/supabase';
 
 export type Subscriber = Tables<'subscribers'>;
 export type Newsletter = Tables<'newsletters'>;
@@ -224,6 +224,7 @@ export class SupabaseService implements OnModuleInit {
     title: string;
     contentHtml: string;
     contentData: ContentData;
+    allKeywords?: string[];
   }): Promise<void> {
     const sendDateStr = data.sendDate
       .toLocaleDateString('ko-KR', {
@@ -248,6 +249,7 @@ export class SupabaseService implements OnModuleInit {
       title: data.title,
       content_html: data.contentHtml,
       content_data: cleanedData,
+      all_keywords: data.allKeywords ?? [],
     });
 
     if (error) {
@@ -255,6 +257,198 @@ export class SupabaseService implements OnModuleInit {
       throw error;
     }
 
-    this.logger.log(`Newsletter archived for ${sendDateStr}`);
+    this.logger.log(
+      `Newsletter archived for ${sendDateStr} with ${data.allKeywords?.length ?? 0} keywords`,
+    );
+  }
+
+  /**
+   * Get all distinct keywords from existing newsletters
+   * Used to maintain keyword consistency across newsletters
+   */
+  async getAllExistingKeywords(): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('newsletters')
+      .select('all_keywords')
+      .not('all_keywords', 'eq', '{}');
+
+    if (error) {
+      this.logger.error(`Failed to fetch existing keywords: ${error.message}`);
+      return [];
+    }
+
+    // Flatten and deduplicate all keywords
+    const allKeywords = new Set<string>();
+    for (const row of data ?? []) {
+      const keywords = row.all_keywords as string[] | null;
+      if (keywords) {
+        for (const keyword of keywords) {
+          allKeywords.add(keyword);
+        }
+      }
+    }
+
+    const result = [...allKeywords];
+    this.logger.log(`Found ${result.length} distinct existing keywords`);
+    return result;
+  }
+
+  // ==========================================
+  // Issue Tracking Methods
+  // ==========================================
+
+  /**
+   * Get all active issue tracks
+   */
+  async getActiveIssueTracks(): Promise<Tables<'issue_tracks'>[]> {
+    const { data, error } = await this.client
+      .from('issue_tracks')
+      .select('*')
+      .eq('is_active', true)
+      .order('last_updated_at', { ascending: false });
+
+    if (error) {
+      this.logger.error(
+        `Failed to fetch active issue tracks: ${error.message}`,
+      );
+      throw error;
+    }
+
+    return (data ?? []) as Tables<'issue_tracks'>[];
+  }
+
+  /**
+   * Get issue track by keyword
+   */
+  async getIssueTrackByKeyword(
+    keyword: string,
+  ): Promise<Tables<'issue_tracks'> | null> {
+    const { data, error } = await this.client
+      .from('issue_tracks')
+      .select('*')
+      .eq('keyword', keyword)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      this.logger.error(`Failed to fetch issue track: ${error.message}`);
+      throw error;
+    }
+
+    return data as Tables<'issue_tracks'>;
+  }
+
+  /**
+   * Update issue track report
+   */
+  async updateIssueTrackReport(
+    id: string,
+    reportHtml: string,
+    reportData: Json,
+  ): Promise<void> {
+    const { error } = await this.client
+      .from('issue_tracks')
+      .update({
+        last_report_html: reportHtml,
+        last_report_data: reportData,
+        last_updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      this.logger.error(
+        `Failed to update issue track report: ${error.message}`,
+      );
+      throw error;
+    }
+
+    this.logger.log(`Issue track ${id} report updated`);
+  }
+
+  /**
+   * Find newsletters containing specific keywords
+   */
+  async findNewslettersByKeywords(
+    keywords: string[],
+    days: number = 30,
+  ): Promise<Newsletter[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    const { data, error } = await this.client
+      .from('newsletters')
+      .select('*')
+      .gte('send_date', startDateStr)
+      .overlaps('all_keywords', keywords)
+      .order('send_date', { ascending: false });
+
+    if (error) {
+      this.logger.error(
+        `Failed to find newsletters by keywords: ${error.message}`,
+      );
+      throw error;
+    }
+
+    return (data ?? []) as Newsletter[];
+  }
+
+  // ==========================================
+  // Payment Intent Log Methods
+  // ==========================================
+
+  /**
+   * Log payment intent (fake door testing)
+   */
+  async logPaymentIntent(data: {
+    issueTrackId?: string;
+    targetIssue: string;
+    ipAddress?: string;
+    userAgent?: string;
+    referrer?: string;
+  }): Promise<void> {
+    const { error } = await this.client.from('payment_intent_logs').insert({
+      issue_track_id: data.issueTrackId,
+      target_issue: data.targetIssue,
+      ip_address: data.ipAddress,
+      user_agent: data.userAgent,
+      referrer: data.referrer,
+    });
+
+    if (error) {
+      this.logger.error(`Failed to log payment intent: ${error.message}`);
+      throw error;
+    }
+
+    this.logger.log(`Payment intent logged for issue: ${data.targetIssue}`);
+  }
+
+  /**
+   * Get payment intent statistics for an issue
+   */
+  async getPaymentIntentStats(
+    targetIssue: string,
+  ): Promise<{ totalClicks: number; uniqueIps: number }> {
+    const { data, error } = await this.client
+      .from('payment_intent_logs')
+      .select('ip_address')
+      .eq('target_issue', targetIssue);
+
+    if (error) {
+      this.logger.error(`Failed to get payment intent stats: ${error.message}`);
+      throw error;
+    }
+
+    const logs = data ?? [];
+    const uniqueIps = new Set(
+      logs.map((log) => log.ip_address).filter(Boolean),
+    );
+
+    return {
+      totalClicks: logs.length,
+      uniqueIps: uniqueIps.size,
+    };
   }
 }

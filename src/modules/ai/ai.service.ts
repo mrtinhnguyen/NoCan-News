@@ -284,18 +284,15 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
                     ]`;
 
     try {
-      const result = await withRetry(
-        () => this.model.generateContent(prompt),
-        {
-          maxRetries: 3,
-          baseDelayMs: 1000,
-          onRetry: (attempt, error) => {
-            this.logger.warn(
-              `[Retry ${attempt}/3] generateInsights failed, retrying... Error: ${error.message}`,
-            );
-          },
+      const result = await withRetry(() => this.model.generateContent(prompt), {
+        maxRetries: 3,
+        baseDelayMs: 1000,
+        onRetry: (attempt, error) => {
+          this.logger.warn(
+            `[Retry ${attempt}/3] generateInsights failed, retrying... Error: ${error.message}`,
+          );
         },
-      );
+      });
       const responseText = result.response.text();
 
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -414,18 +411,15 @@ ${liberalList}
 null`;
 
     try {
-      const result = await withRetry(
-        () => this.model.generateContent(prompt),
-        {
-          maxRetries: 3,
-          baseDelayMs: 1000,
-          onRetry: (attempt, error) => {
-            this.logger.warn(
-              `[Retry ${attempt}/3] matchEditorials failed, retrying... Error: ${error.message}`,
-            );
-          },
+      const result = await withRetry(() => this.model.generateContent(prompt), {
+        maxRetries: 3,
+        baseDelayMs: 1000,
+        onRetry: (attempt, error) => {
+          this.logger.warn(
+            `[Retry ${attempt}/3] matchEditorials failed, retrying... Error: ${error.message}`,
+          );
         },
-      );
+      });
       const responseText = result.response.text().trim();
 
       // null 응답 체크
@@ -522,18 +516,15 @@ ${liberalText.slice(0, 2000)}
 }`;
 
     try {
-      const result = await withRetry(
-        () => this.model.generateContent(prompt),
-        {
-          maxRetries: 3,
-          baseDelayMs: 1000,
-          onRetry: (attempt, error) => {
-            this.logger.warn(
-              `[Retry ${attempt}/3] synthesizeEditorials failed, retrying... Error: ${error.message}`,
-            );
-          },
+      const result = await withRetry(() => this.model.generateContent(prompt), {
+        maxRetries: 3,
+        baseDelayMs: 1000,
+        onRetry: (attempt, error) => {
+          this.logger.warn(
+            `[Retry ${attempt}/3] synthesizeEditorials failed, retrying... Error: ${error.message}`,
+          );
         },
-      );
+      });
       const responseText = result.response.text();
 
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -543,7 +534,10 @@ ${liberalText.slice(0, 2000)}
 
       return JSON.parse(jsonMatch[0]) as EditorialSynthesis;
     } catch (error) {
-      this.logger.error('Failed to synthesize editorials after 3 retries', error);
+      this.logger.error(
+        'Failed to synthesize editorials after 3 retries',
+        error,
+      );
       return null;
     }
   }
@@ -559,6 +553,124 @@ ${liberalText.slice(0, 2000)}
       `범죄 ${blocked.crime}건, 가십 ${blocked.gossip}건, ` +
       `정치비방 ${blocked.politicalStrife}건을 차단했습니다.`
     );
+  }
+
+  /**
+   * 뉴스 목록에서 이슈 추적용 키워드를 기사별로 추출
+   * @param newsItems - insight가 생성된 뉴스 목록
+   * @returns perArticle: 기사별 키워드 배열, all: 전체 중복 제거 키워드
+   */
+  async extractKeywords(
+    newsItems: Array<{
+      title: string;
+      insight?: { fact: string; context: string; implication: string };
+    }>,
+    existingKeywords: string[] = [],
+  ): Promise<{ perArticle: string[][]; all: string[] }> {
+    this.logger.log(
+      `Extracting keywords from ${newsItems.length} news items (${existingKeywords.length} existing keywords as reference)...`,
+    );
+
+    const emptyResult = {
+      perArticle: newsItems.map(() => []),
+      all: [],
+    };
+
+    if (newsItems.length === 0) {
+      return emptyResult;
+    }
+
+    // DEV MODE: AI 스킵 - 빈 결과 반환
+    if (!this.devModeConfig.isAiEnabled) {
+      this.logger.log('[DEV] Skipping AI keyword extraction');
+      return emptyResult;
+    }
+
+    const newsContext = newsItems
+      .map(
+        (news, idx) =>
+          `[${idx}] ${news.title}\n- ${news.insight?.fact ?? '(인사이트 없음)'}`,
+      )
+      .join('\n\n');
+
+    const existingKeywordsSection =
+      existingKeywords.length > 0
+        ? `
+## ⚠️ 기존 키워드 (최우선 규칙)
+아래는 이전 뉴스레터에서 이미 사용된 키워드입니다.
+**같은 주제를 다루는 뉴스가 있다면 반드시 아래 기존 키워드를 그대로 사용하세요.**
+- "의대증원" (X) → "의대 증원" (O, 기존 키워드)
+- "의대 증원 2025" (X) → "의대 증원" (O, 기존 키워드)
+- 띄어쓰기, 연도, 조사 등이 다르더라도 같은 주제면 기존 키워드를 사용하세요.
+
+기존 키워드 목록:
+${existingKeywords.map((k) => `- "${k}"`).join('\n')}
+`
+        : '';
+
+    const prompt = `뉴스 목록에서 **이슈 추적용 키워드**를 기사별로 추출하세요.
+${existingKeywordsSection}
+## 추출 기준
+1. **고유명사 우선:** 정책명, 법안명, 기업명, 인물명, 기술명 (예: "의대 증원", "HBM 반도체", "테슬라")
+2. **지속 추적 가능한 이슈:** 일회성 사건은 제외 (예: "화재 사고" X, "기후 변화" O)
+3. **검색 가능한 형태:** 짧고 명확한 키워드 (예: "국민연금 개혁", "금리 인상")
+4. **기존 키워드 재사용:** 같은 주제의 기존 키워드가 있으면 반드시 그것을 사용
+5. **기사당 최대 2개:** 가장 핵심적인 키워드 1~2개만 선택
+
+## 뉴스 목록
+${newsContext}
+
+## 출력 형식 (JSON만 출력, 다른 텍스트 없이)
+{
+  "perArticle": [
+    ["키워드A", "키워드B"],
+    ["키워드C"],
+    ...
+  ],
+  "all": ["키워드A", "키워드B", "키워드C", ...]
+}
+
+- perArticle: 각 기사([0], [1], ...)에 해당하는 키워드 배열. 기사당 최대 2개.
+- all: perArticle의 모든 키워드를 중복 제거한 배열.`;
+
+    try {
+      const result = await withRetry(() => this.model.generateContent(prompt), {
+        maxRetries: 3,
+        baseDelayMs: 1000,
+        onRetry: (attempt, error) => {
+          this.logger.warn(
+            `[Retry ${attempt}/3] extractKeywords failed, retrying... Error: ${error.message}`,
+          );
+        },
+      });
+      const responseText = result.response.text();
+
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to parse AI response');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        perArticle: string[][];
+        all: string[];
+      };
+
+      // perArticle 길이가 newsItems보다 짧으면 빈 배열로 패딩
+      while (parsed.perArticle.length < newsItems.length) {
+        parsed.perArticle.push([]);
+      }
+
+      // all 중복 제거 및 빈 문자열 제거
+      const uniqueAll = [...new Set(parsed.all.filter((k) => k.trim()))];
+
+      this.logger.log(
+        `Extracted ${uniqueAll.length} keywords (${newsItems.length} articles mapped): ${uniqueAll.slice(0, 5).join(', ')}...`,
+      );
+      return { perArticle: parsed.perArticle, all: uniqueAll };
+    } catch (error) {
+      this.logger.error('Failed to extract keywords after 3 retries', error);
+      return emptyResult;
+    }
   }
 
   /**

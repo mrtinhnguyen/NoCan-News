@@ -87,9 +87,60 @@ create table public.subscribers (
 );
 ```
 
-### 4.2 Security Policy (RLS)
+### 4.2 Schema (`public.newsletters`) - Updated
 
-- **Frontend (Anon Key):** INSERT only. (누구나 구독 신청 가능, 조회 불가)
+```sql
+create table public.newsletters (
+  id uuid not null default gen_random_uuid(),
+  send_date date not null,
+  title text not null,
+  content_html text not null,
+  content_data jsonb not null,
+  all_keywords text[] default '{}',  -- AI 추출 키워드 (이슈 추적용)
+  created_at timestamp with time zone not null default now(),
+  constraint newsletters_pkey primary key (id),
+  constraint newsletters_send_date_key unique (send_date)
+);
+
+-- GIN 인덱스 (키워드 검색용)
+create index idx_newsletters_keywords on newsletters using gin (all_keywords);
+```
+
+### 4.3 Schema (`public.issue_tracks`)
+
+```sql
+create table public.issue_tracks (
+  id uuid not null default gen_random_uuid(),
+  keyword text not null,              -- 추적 키워드 (예: "의대 증원")
+  display_title text not null,        -- 화면 표시 제목
+  is_active boolean not null default true,
+  last_report_html text,              -- AI 생성 리포트 HTML
+  last_report_data jsonb,             -- API 접근용 구조화 데이터
+  last_updated_at timestamp with time zone default now(),
+  created_at timestamp with time zone not null default now(),
+  constraint issue_tracks_pkey primary key (id),
+  constraint issue_tracks_keyword_key unique (keyword)
+);
+```
+
+### 4.4 Schema (`public.payment_intent_logs`)
+
+```sql
+create table public.payment_intent_logs (
+  id uuid not null default gen_random_uuid(),
+  issue_track_id uuid references issue_tracks(id),
+  target_issue text not null,         -- 클릭한 이슈 키워드
+  ip_address inet,
+  user_agent text,
+  referrer text,
+  clicked_at timestamp with time zone not null default now(),
+  constraint payment_intent_logs_pkey primary key (id)
+);
+```
+
+### 4.5 Security Policy (RLS)
+
+- **Frontend (Anon Key):** INSERT only (subscribers), SELECT only (newsletters, issue_tracks)
 - **Backend (Service Role Key):** SELECT, UPDATE all. (모든 데이터 접근 가능)
 
 ---
@@ -119,6 +170,29 @@ create table public.subscribers (
 - **목적:** 사용자의 자유 의지 존중 및 스팸 처리 방지.
 - **구현:** 이메일 Footer에 개별 수신 거부 링크 제공 -> Next.js `/unsubscribe` 페이지로 연결.
 
+### Part 5. Issue Deep Dive (이슈 심층 분석) - NEW
+
+- **목적:** Pre-baked AI 리포트로 이슈의 시간적 흐름 파악
+- **데이터 흐름:**
+  1. 관리자가 `issue_tracks`에 키워드 등록
+  2. 매일 뉴스레터 발송 후, 관련 뉴스가 있으면 리포트 자동 갱신
+  3. 프론트엔드에서 미리 생성된 HTML 즉시 렌더링
+- **Fake Door 테스트:** 프리미엄 콘텐츠 버튼 클릭 시 `payment_intent_logs` 기록
+
+```
+[관리자] → issue_tracks 테이블에 키워드 등록
+                ↓
+[Daily Cron] → 뉴스레터 발송 완료
+                ↓
+[Worker] → 새 뉴스에서 키워드 추출 → newsletters.all_keywords 저장
+                ↓
+[Worker] → 활성 이슈 중 새 뉴스 있으면 → AI 리포트 재생성
+                ↓
+[Frontend] → 사용자가 이슈 클릭 → last_report_html 즉시 표시
+                ↓
+[Frontend] → "프리미엄" 버튼 클릭 → payment_intent_logs 기록 → 무료 공개
+```
+
 ---
 
 ## 6. Data & AI Strategy
@@ -133,6 +207,7 @@ create table public.subscribers (
 
 - **Role 1 (Filter/Detox):** `isToxic` 판별 및 건조한 제목 재작성.
 - **Role 2 (Synthesis):** 사설 비교 분석. 감정적 어휘 삭제, 논리적 쟁점 추출.
+- **Role 3 (Keywords):** 뉴스 목록에서 이슈 추적용 키워드 추출 (고유명사 우선, 지속 추적 가능한 이슈).
 
 ### 6.3 Gemini API 구성
 
@@ -171,6 +246,15 @@ create table public.subscribers (
 - [x] GitHub Actions 워크플로우 작성 (`cron: '0 22 * * *'`).
 - [x] 실제 이메일 발송 테스트 (Whitelist).
 - [x] Service Launch (MVP Open).
+
+### Phase 4: Issue Tracking Feature (Current)
+
+- [x] DB 마이그레이션 (`newsletters.all_keywords`, `issue_tracks`, `payment_intent_logs`)
+- [x] AI 키워드 추출 로직 (`ai.service.ts`)
+- [x] Issue Tracking 모듈 (`src/modules/issue-tracking/`)
+- [x] 키워드 백필 스크립트 (`scripts/backfill-keywords.ts`)
+- [ ] 프론트엔드 이슈 리스트/상세 페이지 (NoCan-News-Web)
+- [ ] Fake Door 테스트 UI 구현
 
 ---
 
@@ -212,3 +296,13 @@ DEV_MODE에서 자동 생성되는 HTML 리포트:
 - 위치: `reports/selection-report-YYYY-MM-DD-HHMM.html`
 - 내용: 카테고리별 전체 기사 목록 + AI 선별 결과 + 필터링 통계
 - 용도: AI 선별 품질 확인
+
+### 8.5 Issue Tracking 스크립트
+
+| 스크립트 | 용도 |
+|----------|------|
+| `npx ts-node scripts/backfill-keywords.ts` | 기존 뉴스레터에 키워드 소급 적용 |
+
+**백필 스크립트 환경 변수:**
+- `SUPABASE_URL`, `SUPABASE_SECRET_KEY`: 필수
+- `GEMINI_API_KEY`: AI 키워드 추출용
