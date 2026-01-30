@@ -226,14 +226,14 @@ export class SupabaseService implements OnModuleInit {
     contentData: ContentData;
     allKeywords?: string[];
   }): Promise<void> {
-    const sendDateStr = data.sendDate
-      .toLocaleDateString('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\//g, '-');
+    // Sử dụng locale sv-SE (Thụy Điển) hoặc en-CA để có định dạng YYYY-MM-DD chuẩn ISO
+    // Điều này đảm bảo tương thích với kiểu DATE của PostgreSQL
+    const sendDateStr = data.sendDate.toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
 
     // Serialize JSON explicitly and parse back to ensure only pure object is saved
     const jsonStr = JSON.stringify(data.contentData);
