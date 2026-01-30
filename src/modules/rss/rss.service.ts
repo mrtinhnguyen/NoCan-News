@@ -26,7 +26,7 @@ export class RssService {
   }
 
   /**
-   * RSS 피드에서 뉴스 아이템 수집
+   * Thu thập mục tin tức từ RSS feed
    */
   private async fetchRss(
     url: string,
@@ -43,95 +43,98 @@ export class RssService {
         category,
       }));
 
-      // DEV MODE: 상세 로그
+      // DEV MODE: Log chi tiết
       if (this.devModeConfig.verboseLogging) {
-        this.logger.log(`=== ${category.toUpperCase()} RSS Feed ===`);
-        this.logger.log(`Total items: ${items.length}`);
+        this.logger.log(`=== RSS Feed ${category.toUpperCase()} ===`);
+        this.logger.log(`Tổng số mục: ${items.length}`);
         const showCount = Math.min(5, items.length);
         items.slice(0, showCount).forEach((item, i) => {
           this.logger.log(`  [${i}] ${item.title}`);
         });
         if (items.length > showCount) {
-          this.logger.log(`  ... and ${items.length - showCount} more`);
+          this.logger.log(`  ... và ${items.length - showCount} mục khác`);
         }
       }
 
       return items;
     } catch (error) {
-      this.logger.error(`Failed to fetch RSS from ${url}`, error);
+      this.logger.error(`Không thể thu thập RSS từ ${url}`, error);
       return [];
     }
   }
 
   /**
-   * 비즈니스/경제 뉴스 수집
+   * Thu thập tin tức Kinh doanh/Kinh tế
    */
   async fetchBusinessNews(): Promise<NewsItem[]> {
-    this.logger.log('Fetching business news...');
+    this.logger.log('Đang thu thập tin tức kinh doanh...');
     const items = await this.fetchRss(
       GOOGLE_RSS_URLS.SECTION_BUSINESS,
       'business',
     );
-    this.logger.log(`Fetched ${items.length} business news items`);
+    this.logger.log(`Đã thu thập ${items.length} tin tức kinh doanh`);
 
     if (items.length > 0) {
-      this.logger.debug(`Sample: ${items[0].title}`);
+      this.logger.debug(`Mẫu: ${items[0].title}`);
     }
 
     return items;
   }
 
   /**
-   * 기술/과학 뉴스 수집
+   * Thu thập tin tức Công nghệ/Khoa học
    */
   async fetchTechNews(): Promise<NewsItem[]> {
-    this.logger.log('Fetching tech news...');
+    this.logger.log('Đang thu thập tin tức công nghệ...');
     const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_TECH, 'tech');
-    this.logger.log(`Fetched ${items.length} tech news items`);
+    this.logger.log(`Đã thu thập ${items.length} tin tức công nghệ`);
 
     if (items.length > 0) {
-      this.logger.debug(`Sample: ${items[0].title}`);
+      this.logger.debug(`Mẫu: ${items[0].title}`);
     }
 
     return items;
   }
 
   /**
-   * 사회 뉴스 수집 (대한민국 카테고리)
+   * Thu thập tin tức Xã hội (Danh mục Việt Nam)
    */
   async fetchSocietyNews(): Promise<NewsItem[]> {
-    this.logger.log('Fetching society news (Korea category)...');
-    const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_KOREA, 'society');
-    this.logger.log(`Fetched ${items.length} society news items`);
+    this.logger.log('Đang thu thập tin tức xã hội (Việt Nam)...');
+    const items = await this.fetchRss(
+      GOOGLE_RSS_URLS.SECTION_VIETNAM,
+      'society',
+    );
+    this.logger.log(`Đã thu thập ${items.length} tin tức xã hội`);
 
     if (items.length > 0) {
-      this.logger.debug(`Sample: ${items[0].title}`);
+      this.logger.debug(`Mẫu: ${items[0].title}`);
     }
 
     return items;
   }
 
   /**
-   * 글로벌/세계 뉴스 수집
+   * Thu thập tin tức Thế giới/Toàn cầu
    */
   async fetchWorldNews(): Promise<NewsItem[]> {
-    this.logger.log('Fetching world news...');
+    this.logger.log('Đang thu thập tin tức thế giới...');
     const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_WORLD, 'world');
-    this.logger.log(`Fetched ${items.length} world news items`);
+    this.logger.log(`Đã thu thập ${items.length} tin tức thế giới`);
 
     if (items.length > 0) {
-      this.logger.debug(`Sample: ${items[0].title}`);
+      this.logger.debug(`Mẫu: ${items[0].title}`);
     }
 
     return items;
   }
 
   /**
-   * 사설 수집
-   * @param stance - 'conservative' (조중동) 또는 'liberal' (한경오)
+   * Thu thập xã luận
+   * @param stance - 'conservative' (Nhóm 1) hoặc 'liberal' (Nhóm 2)
    */
   async fetchEditorials(stance: EditorialStance): Promise<Editorial[]> {
-    this.logger.log(`Fetching ${stance} editorials...`);
+    this.logger.log(`Đang thu thập xã luận ${stance}...`);
 
     const query =
       stance === 'conservative'
@@ -150,33 +153,35 @@ export class RssService {
         stance,
       }));
 
-      this.logger.log(`Fetched ${editorials.length} ${stance} editorials`);
+      this.logger.log(`Đã thu thập ${editorials.length} bài xã luận ${stance}`);
 
-      // DEV MODE: 사설 상세 로그
+      // DEV MODE: Log chi tiết xã luận
       if (this.devModeConfig.verboseLogging) {
         const stanceLabel =
-          stance === 'conservative' ? '보수 (조중동)' : '진보 (한경오)';
-        this.logger.log(`=== ${stanceLabel} 사설 ===`);
+          stance === 'conservative'
+            ? 'Nhóm 1 (VnExpress/Dân Trí)'
+            : 'Nhóm 2 (Tuổi Trẻ/Thanh Niên)';
+        this.logger.log(`=== Xã luận ${stanceLabel} ===`);
         editorials.forEach((e, i) => {
           this.logger.log(`  [${i}] ${e.title}`);
           this.logger.log(`      Link: ${e.link}`);
         });
       } else if (editorials.length > 0) {
-        this.logger.debug(`Sample: ${editorials[0].title}`);
+        this.logger.debug(`Mẫu: ${editorials[0].title}`);
       }
 
       return editorials;
     } catch (error) {
-      this.logger.error(`Failed to fetch ${stance} editorials`, error);
+      this.logger.error(`Thu thập xã luận ${stance} thất bại`, error);
       return [];
     }
   }
 
   /**
-   * 모든 카테고리 뉴스 수집
+   * Thu thập tin tức tất cả danh mục
    */
   async fetchAllCategories(): Promise<CategorizedNews> {
-    this.logger.log('Fetching all news categories...');
+    this.logger.log('Đang thu thập tất cả danh mục tin tức...');
 
     const [business, tech, society, world] = await Promise.all([
       this.fetchBusinessNews(),
@@ -186,9 +191,9 @@ export class RssService {
     ]);
 
     const total = business.length + tech.length + society.length + world.length;
-    this.logger.log(`Total fetched: ${total} news items`);
+    this.logger.log(`Tổng số tin đã thu thập: ${total}`);
     this.logger.log(
-      `  - Business: ${business.length}, Tech: ${tech.length}, Society: ${society.length}, World: ${world.length}`,
+      `  - Kinh doanh: ${business.length}, Công nghệ: ${tech.length}, Xã hội: ${society.length}, Thế giới: ${world.length}`,
     );
 
     return { business, tech, society, world };

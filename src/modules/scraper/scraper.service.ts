@@ -12,9 +12,7 @@ export class ScraperService {
   private readonly logger = new Logger(ScraperService.name);
   private readonly model: GenerativeModel;
 
-  constructor(
-    private readonly devModeConfig: DevModeConfig,
-  ) {
+  constructor(private readonly devModeConfig: DevModeConfig) {
     const apiKey = this.devModeConfig.getGeminiApiKey();
     if (apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -26,7 +24,7 @@ export class ScraperService {
   }
 
   /**
-   * Google News 페이지에서 batchexecute API 호출에 필요한 파라미터 추출
+   * Trích xuất các tham số cần thiết cho cuộc gọi API batchexecute từ trang Google News
    */
   private async getDecodingParams(
     articleId: string,
@@ -59,7 +57,7 @@ export class ScraperService {
   }
 
   /**
-   * Google batchexecute API를 사용하여 URL 디코딩
+   * Giải mã URL bằng Google batchexecute API
    */
   private async decodeWithBatchExecute(
     articleId: string,
@@ -81,7 +79,7 @@ export class ScraperService {
         },
       );
 
-      // 응답에서 URL 추출 (JSON 이스케이프 해제 후)
+      // Trích xuất URL từ phản hồi (sau khi loại bỏ JSON escape)
       const unescapedData = response.data
         .replace(/\\\\u([0-9a-fA-F]{4})/g, (_, hex) =>
           String.fromCharCode(parseInt(hex, 16)),
@@ -108,13 +106,13 @@ export class ScraperService {
   }
 
   /**
-   * Google News 리다이렉트 URL에서 실제 기사 URL 추출
-   * 1. Base64 디코딩 시도 (레거시 형식, 네트워크 요청 없음)
-   * 2. batchexecute API (새로운 AU_yqL 형식)
-   * 3. 원본 URL 반환 (fallback)
+   * Trích xuất URL bài báo thực tế từ URL chuyển hướng Google News
+   * 1. Thử giải mã Base64 (định dạng cũ, không cần request mạng)
+   * 2. batchexecute API (định dạng AU_yqL mới)
+   * 3. Trả về URL gốc (fallback)
    */
   private async resolveGoogleNewsUrl(googleUrl: string): Promise<string> {
-    // Google News URL이 아니면 그대로 반환
+    // Nếu không phải URL Google News thì trả về nguyên trạng
     if (!googleUrl.includes('news.google.com')) {
       return googleUrl;
     }
@@ -125,23 +123,23 @@ export class ScraperService {
     }
 
     try {
-      // 1. Base64 디코딩 시도 (레거시 형식)
+      // 1. Thử giải mã Base64 (định dạng cũ)
       const decoded = Buffer.from(articleId, 'base64').toString('latin1');
       let str = decoded;
 
-      // 접두사 제거 [0x08, 0x13, 0x22]
+      // Xóa tiền tố [0x08, 0x13, 0x22]
       const prefix = String.fromCharCode(0x08, 0x13, 0x22);
       if (str.startsWith(prefix)) {
         str = str.substring(prefix.length);
       }
 
-      // 접미사 제거 [0xd2, 0x01, 0x00]
+      // Xóa hậu tố [0xd2, 0x01, 0x00]
       const suffix = String.fromCharCode(0xd2, 0x01, 0x00);
       if (str.endsWith(suffix)) {
         str = str.substring(0, str.length - suffix.length);
       }
 
-      // 길이 바이트 파싱
+      // Phân tích byte độ dài
       const bytes = Uint8Array.from(str, (c) => c.charCodeAt(0));
       const len = bytes[0];
 
@@ -151,14 +149,14 @@ export class ScraperService {
         str = str.substring(1, len + 1);
       }
 
-      // 레거시 형식: 직접 URL이 포함된 경우
+      // Định dạng cũ: khi chứa URL trực tiếp
       if (str.startsWith('http://') || str.startsWith('https://')) {
         this.logger.debug(`Base64 decoded URL: ${str}`);
         return str;
       }
 
-      // 2. 새로운 형식 (AU_yqL): batchexecute API 사용
-      this.logger.debug('새로운 형식 감지, batchexecute API 호출');
+      // 2. Định dạng mới (AU_yqL): sử dụng batchexecute API
+      this.logger.debug('Phát hiện định dạng mới, đang gọi API batchexecute');
       const params = await this.getDecodingParams(articleId);
 
       if (params) {
@@ -174,7 +172,7 @@ export class ScraperService {
         }
       }
 
-      this.logger.warn(`URL 디코딩 실패: ${googleUrl}`);
+      this.logger.warn(`Giải mã URL thất bại: ${googleUrl}`);
       return googleUrl;
     } catch {
       this.logger.warn(`Failed to resolve URL: ${googleUrl}`);
@@ -183,12 +181,12 @@ export class ScraperService {
   }
 
   /**
-   * Arc Publishing (Fusion) 사이트에서 JSON으로 본문 추출
-   * 조선일보, 조선비즈 등 Fusion 플랫폼 사용 사이트 대응
+   * Trích xuất nội dung dưới dạng JSON từ các trang Arc Publishing (Fusion)
+   * Hỗ trợ các trang sử dụng nền tảng Fusion như Chosun Ilbo, Chosun Biz
    */
   private extractFromFusionJson(html: string): string | null {
     try {
-      // Fusion.globalContent JSON 찾기
+      // Tìm JSON Fusion.globalContent
       const fusionMatch = html.match(
         /Fusion\.globalContent\s*=\s*(\{[\s\S]*?\});?\s*Fusion\./,
       );
@@ -199,7 +197,7 @@ export class ScraperService {
       const jsonStr = fusionMatch[1];
       const globalContent = JSON.parse(jsonStr);
 
-      // content_elements 배열에서 텍스트 추출
+      // Trích xuất văn bản từ mảng content_elements
       const contentElements = globalContent.content_elements;
       if (!Array.isArray(contentElements)) {
         return null;
@@ -227,10 +225,10 @@ export class ScraperService {
   }
 
   /**
-   * AI를 사용하여 HTML에서 본문 추출 (Readability 실패 시 fallback)
+   * Sử dụng AI để trích xuất nội dung từ HTML (fallback khi Readability thất bại)
    */
   private async extractContentWithAI(html: string): Promise<string | null> {
-    // DEV MODE: AI 비활성화 시 스킵
+    // DEV MODE: Bỏ qua nếu AI bị vô hiệu hóa
     if (!this.devModeConfig.isAiEnabled) {
       this.logger.log('[DEV] AI fallback disabled - skipping');
       return null;
@@ -249,9 +247,9 @@ export class ScraperService {
     }
 
     try {
-      const prompt = `아래 HTML에서 뉴스 기사 본문만 추출해주세요.
-광고, 메뉴, 푸터, 관련 기사 등은 제외하고 순수 기사 내용만 텍스트로 반환하세요.
-본문이 없으면 "NO_CONTENT"를 반환하세요.
+      const prompt = `Hãy trích xuất nội dung chính của bài báo từ HTML bên dưới.
+Loại bỏ quảng cáo, menu, footer, các bài viết liên quan, v.v. và chỉ trả về nội dung văn bản thuần túy của bài báo.
+Nếu không có nội dung, hãy trả về "NO_CONTENT".
 
 HTML:
 ${html.slice(0, 15000)}`;
@@ -277,7 +275,7 @@ ${html.slice(0, 15000)}`;
   }
 
   /**
-   * 뉴스 기사 본문 스크래핑 (Readability → AI fallback)
+   * Cào nội dung bài viết tin tức (Readability → AI fallback)
    */
   async scrapeArticle(url: string): Promise<string> {
     const isVerbose = this.devModeConfig.verboseLogging;
@@ -306,7 +304,7 @@ ${html.slice(0, 15000)}`;
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           Accept:
             'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
         },
       });
 
@@ -316,7 +314,7 @@ ${html.slice(0, 15000)}`;
         this.logger.log(`  HTML Length: ${html.length} chars`);
       }
 
-      // 1. Readability로 본문 추출 시도
+      // 1. Thử dùng Readability để trích xuất nội dung
       const dom = new JSDOM(html, { url: actualUrl });
       const reader = new Readability(dom.window.document);
       const article = reader.parse();
@@ -334,16 +332,18 @@ ${html.slice(0, 15000)}`;
         }
       }
 
-      // 2. Readability 실패 시 Fusion JSON → AI fallback
+      // 2. Nếu Readability thất bại → Fusion JSON → AI fallback
       if (!readabilitySuccess) {
-        // 2-1. Fusion JSON 추출 시도 (조선계열 등 Arc Publishing 사이트)
+        // 2-1. Thử trích xuất Fusion JSON (cho các trang như Chosun)
         const fusionContent = this.extractFromFusionJson(html);
         if (fusionContent) {
           content = fusionContent;
           if (isVerbose) {
             this.logger.log(`  [SUCCESS] Fusion JSON: ${content.length} chars`);
           } else {
-            this.logger.debug(`Fusion JSON 본문 추출 성공: ${actualUrl}`);
+            this.logger.debug(
+              `Trích xuất nội dung Fusion JSON thành công: ${actualUrl}`,
+            );
           }
         } else {
           // 2-2. AI fallback
@@ -351,7 +351,7 @@ ${html.slice(0, 15000)}`;
             this.logger.log(`  Trying AI fallback...`);
           } else {
             this.logger.debug(
-              `Readability 실패, AI fallback 시도: ${actualUrl}`,
+              `Readability thất bại, thử AI fallback: ${actualUrl}`,
             );
           }
 
@@ -363,7 +363,9 @@ ${html.slice(0, 15000)}`;
                 `  [SUCCESS] AI fallback: ${content.length} chars`,
               );
             } else {
-              this.logger.debug(`AI 본문 추출 성공: ${actualUrl}`);
+              this.logger.debug(
+                `Trích xuất nội dung bằng AI thành công: ${actualUrl}`,
+              );
             }
           } else if (isVerbose) {
             this.logger.log(`  [FAIL] AI fallback returned null`);
@@ -371,7 +373,7 @@ ${html.slice(0, 15000)}`;
         }
       }
 
-      // 최소 길이 확인
+      // Kiểm tra độ dài tối thiểu
       if (content.length < 100) {
         if (isVerbose) {
           this.logger.log(
@@ -389,12 +391,12 @@ ${html.slice(0, 15000)}`;
             `    - AI fallback: ${this.devModeConfig.isAiEnabled ? 'failed' : 'disabled'}`,
           );
         } else {
-          this.logger.warn(`본문 추출 실패: ${actualUrl}`);
+          this.logger.warn(`Trích xuất nội dung thất bại: ${actualUrl}`);
         }
         return '';
       }
 
-      // 최대 길이 제한 (토큰 절약)
+      // Giới hạn độ dài tối đa (tiết kiệm token)
       if (content.length > 3000) {
         content = content.slice(0, 3000) + '...';
       }
@@ -406,47 +408,47 @@ ${html.slice(0, 15000)}`;
           `  [ERROR] Request failed: ${(error as Error).message}`,
         );
       } else {
-        this.logger.error(`Failed to scrape: ${url}`, error);
+        this.logger.error(`Thất bại khi cào: ${url}`, error);
       }
       return '';
     }
   }
 
   /**
-   * 여러 뉴스 기사 본문 스크래핑
-   * 본문 추출 실패한 기사는 제외됨
+   * Cào nội dung nhiều bài báo
+   * Các bài thất bại sẽ bị loại bỏ
    */
   async scrapeMultipleArticles(newsItems: NewsItem[]): Promise<ScrapedNews[]> {
-    this.logger.log(`Scraping ${newsItems.length} articles...`);
+    this.logger.log(`Đang cào ${newsItems.length} bài báo...`);
 
     const results: ScrapedNews[] = [];
 
     for (const item of newsItems) {
       const content = await this.scrapeArticle(item.link);
 
-      // 본문 추출 성공한 기사만 포함
+      // Chỉ bao gồm các bài cào thành công
       if (content.length >= 100) {
         results.push({
           ...item,
           content,
         });
       } else {
-        this.logger.warn(`기사 제외 (본문 없음): ${item.title}`);
+        this.logger.warn(`Loại bỏ bài viết (không có nội dung): ${item.title}`);
       }
 
-      // 요청 간 딜레이 (서버 부담 줄이기)
+      // Delay giữa các request (giảm tải server)
       await this.delay(500);
     }
 
     this.logger.log(
-      `Scraped ${results.length}/${newsItems.length} articles successfully`,
+      `Đã cào thành công ${results.length}/${newsItems.length} bài báo`,
     );
 
     return results;
   }
 
   /**
-   * 지연 함수
+   * Hàm delay
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

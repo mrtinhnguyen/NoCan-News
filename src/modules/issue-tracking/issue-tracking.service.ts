@@ -18,54 +18,56 @@ export class IssueTrackingService {
   ) {}
 
   /**
-   * Update reports for all active tracked issues
-   * Should run AFTER newsletter is sent (e.g., 07:30 KST)
+   * Cập nhật báo cáo cho tất cả các vấn đề đang theo dõi
+   * Nên chạy SAU khi bản tin được gửi (ví dụ: 07:30 giờ Việt Nam)
    */
   async updateAllReports(): Promise<void> {
-    this.logger.log('Starting issue report updates...');
+    this.logger.log('Bắt đầu cập nhật báo cáo vấn đề...');
 
     const activeIssues = await this.supabaseService.getActiveIssueTracks();
-    this.logger.log(`Found ${activeIssues.length} active issue tracks`);
+    this.logger.log(`Tìm thấy ${activeIssues.length} vấn đề đang theo dõi`);
 
     for (const issue of activeIssues) {
       try {
         await this.updateIssueReport(issue);
       } catch (error) {
         this.logger.error(
-          `Failed to update report for "${issue.keyword}": ${error}`,
+          `Không thể cập nhật báo cáo cho "${issue.keyword}": ${error}`,
         );
       }
     }
 
-    this.logger.log('Issue report updates completed');
+    this.logger.log('Hoàn thành cập nhật báo cáo vấn đề');
   }
 
   /**
-   * Generate/update report for a single tracked issue
+   * Tạo/cập nhật báo cáo cho một vấn đề được theo dõi
    */
   async updateIssueReport(issue: Tables<'issue_tracks'>): Promise<void> {
-    this.logger.log(`Updating report for issue: ${issue.keyword}`);
+    this.logger.log(`Đang cập nhật báo cáo cho vấn đề: ${issue.keyword}`);
 
-    // 1. Find related newsletters (last 30 days)
+    // 1. Tìm các bản tin liên quan (30 ngày qua)
     const relatedNewsletters =
       await this.supabaseService.findNewslettersByKeywords([issue.keyword], 30);
 
     if (relatedNewsletters.length === 0) {
-      this.logger.log(`No related newsletters found for "${issue.keyword}"`);
+      this.logger.log(
+        `Không tìm thấy bản tin liên quan cho "${issue.keyword}"`,
+      );
       return;
     }
 
     this.logger.log(
-      `Found ${relatedNewsletters.length} related newsletters for "${issue.keyword}"`,
+      `Tìm thấy ${relatedNewsletters.length} bản tin liên quan cho "${issue.keyword}"`,
     );
 
-    // 2. Build timeline from newsletters
+    // 2. Xây dựng dòng thời gian từ các bản tin
     const timeline = this.buildTimeline(relatedNewsletters, issue.keyword);
 
-    // 3. Generate AI summary (simplified for now)
+    // 3. Tạo tóm tắt bằng AI (đơn giản hóa cho hiện tại)
     const summary = this.generateSummary(issue.keyword, timeline);
 
-    // 4. Build report data
+    // 4. Xây dựng dữ liệu báo cáo
     const reportData: IssueReportData = {
       keyword: issue.keyword,
       report_date: new Date().toISOString(),
@@ -82,21 +84,21 @@ export class IssueTrackingService {
       },
     };
 
-    // 5. Render HTML report
+    // 5. Render báo cáo HTML
     const reportHtml = this.renderReport(issue, reportData);
 
-    // 6. Save to database
+    // 6. Lưu vào cơ sở dữ liệu
     await this.supabaseService.updateIssueTrackReport(
       issue.id,
       reportHtml,
       reportData as unknown as Json,
     );
 
-    this.logger.log(`Report updated for "${issue.keyword}"`);
+    this.logger.log(`Đã cập nhật báo cáo cho "${issue.keyword}"`);
   }
 
   /**
-   * Build timeline from newsletters
+   * Xây dựng dòng thời gian từ các bản tin
    */
   private buildTimeline(
     newsletters: Newsletter[],
@@ -118,13 +120,13 @@ export class IssueTrackingService {
 
       if (!contentData?.news_items) continue;
 
-      // Filter news items that match the keyword
+      // Lọc các mục tin tức khớp với từ khóa
       const matchingItems = contentData.news_items.filter((item) => {
-        // 기사별 키워드가 있으면 그걸로 매칭 (정확)
+        // Nếu có từ khóa theo bài viết thì dùng nó để khớp (chính xác)
         if (item.keywords?.length) {
           return item.keywords.includes(keyword);
         }
-        // fallback: 텍스트 매칭 (기존 데이터 호환)
+        // fallback: Khớp văn bản (tương thích dữ liệu cũ)
         return (
           item.original_title.includes(keyword) ||
           item.refined_title.includes(keyword) ||
@@ -147,31 +149,31 @@ export class IssueTrackingService {
       }
     }
 
-    // Sort by date descending (most recent first)
+    // Sắp xếp theo ngày giảm dần (mới nhất trước)
     return timeline.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
   }
 
   /**
-   * Generate summary using AI (simplified)
+   * Tạo tóm tắt bằng AI (đơn giản hóa)
    */
   private generateSummary(
     keyword: string,
     timeline: IssueTimelineEntry[],
   ): string {
     if (timeline.length === 0) {
-      return `"${keyword}" 관련 최근 뉴스가 없습니다.`;
+      return `Không có tin tức gần đây liên quan đến "${keyword}".`;
     }
 
     const totalNews = timeline.reduce((acc, t) => acc + t.news_items.length, 0);
     const dateRange = `${timeline[timeline.length - 1]?.date} ~ ${timeline[0]?.date}`;
 
-    return `"${keyword}" 이슈는 최근 ${timeline.length}일 동안 총 ${totalNews}건의 뉴스에서 다뤄졌습니다. (${dateRange})`;
+    return `Vấn đề "${keyword}" đã được đề cập trong tổng số ${totalNews} tin tức trong ${timeline.length} ngày qua. (${dateRange})`;
   }
 
   /**
-   * Extract key insights from timeline
+   * Trích xuất các insight chính từ dòng thời gian
    */
   private extractKeyInsights(timeline: IssueTimelineEntry[]): string[] {
     const insights: string[] = [];
@@ -188,7 +190,7 @@ export class IssueTrackingService {
   }
 
   /**
-   * Render HTML report for an issue
+   * Render báo cáo HTML cho một vấn đề
    */
   private renderReport(
     issue: Tables<'issue_tracks'>,
@@ -223,11 +225,11 @@ export class IssueTrackingService {
 
     return `
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${issue.display_title} - NoCan News Issue Report</title>
+  <title>${issue.display_title} - Báo cáo Vấn đề NoCan News</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
     h1 { border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -244,13 +246,13 @@ export class IssueTrackingService {
 <body>
   <h1>${issue.display_title}</h1>
   <div class="meta">
-    <p>키워드: <strong>${issue.keyword}</strong></p>
-    <p>업데이트: ${data.report_date.split('T')[0]}</p>
-    <p>관련 뉴스: ${data.related_news_count}건 (${data.date_range.start} ~ ${data.date_range.end})</p>
+    <p>Từ khóa: <strong>${issue.keyword}</strong></p>
+    <p>Cập nhật: ${data.report_date.split('T')[0]}</p>
+    <p>Tin tức liên quan: ${data.related_news_count} bài (${data.date_range.start} ~ ${data.date_range.end})</p>
   </div>
 
   <div class="summary">
-    <h3>요약</h3>
+    <h3>Tóm tắt</h3>
     <p>${data.summary}</p>
   </div>
 
@@ -258,22 +260,22 @@ export class IssueTrackingService {
     data.key_insights.length > 0
       ? `
   <div class="insights">
-    <h3>핵심 인사이트</h3>
+    <h3>Insight Chính</h3>
     <ul>${insightsHtml}</ul>
   </div>
   `
       : ''
   }
 
-  <h2>타임라인</h2>
-  ${timelineHtml || '<p>관련 뉴스가 없습니다.</p>'}
+  <h2>Dòng thời gian</h2>
+  ${timelineHtml || '<p>Không có tin tức liên quan.</p>'}
 </body>
 </html>
     `.trim();
   }
 
   /**
-   * Get all active issues for display
+   * Lấy tất cả các vấn đề đang hoạt động để hiển thị
    */
   async getActiveIssues(): Promise<IssueTrack[]> {
     const issues = await this.supabaseService.getActiveIssueTracks();
@@ -292,7 +294,7 @@ export class IssueTrackingService {
   }
 
   /**
-   * Log payment intent (for fake door testing)
+   * Ghi log ý định thanh toán (để kiểm thử fake door)
    */
   async logPaymentIntent(
     targetIssue: string,

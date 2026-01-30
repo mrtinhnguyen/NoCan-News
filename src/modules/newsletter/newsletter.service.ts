@@ -77,20 +77,20 @@ export class NewsletterService {
   ) {}
 
   /**
-   * 뉴스레터 생성 및 발송 메인 프로세스
+   * Quy trình tạo và gửi bản tin chính
    *
-   * Flow (플랜 기반):
-   * 1. RSS 수집 (~310건)
-   * 2. AI 선별 (카테고리별 4회 병렬 호출 → 12개 선택)
-   * 3. 본문 스크래핑 (cheerio)
-   * 4. AI 처리 (제목 중화 + 인사이트 생성 1회 호출)
-   * 5. HTML 렌더링 및 이메일 발송
+   * Flow (dựa trên kế hoạch):
+   * 1. Thu thập RSS (~310 tin)
+   * 2. Chọn lọc AI (4 cuộc gọi song song theo danh mục → chọn 12 tin)
+   * 3. Cào nội dung bài viết (cheerio)
+   * 4. Xử lý AI (trung hòa tiêu đề + tạo insight 1 cuộc gọi)
+   * 5. Render HTML và gửi email
    */
   async run(): Promise<void> {
-    // DEV MODE: 시작 배너 출력
+    // DEV MODE: In banner khởi động
     this.devModeConfig.printBanner();
 
-    this.logger.log('=== NoCan News Newsletter Generation Started ===');
+    this.logger.log('=== Bắt đầu tạo bản tin NoCan News ===');
 
     const metrics: NewsletterMetrics = {
       rss: { totalScanned: 0, byCategory: {} as Record<NewsCategory, number> },
@@ -106,11 +106,11 @@ export class NewsletterService {
     };
 
     try {
-      // Step 1: RSS 피드 수집
-      this.logger.log('Step 1: Collecting RSS feeds...');
+      // Bước 1: Thu thập RSS feed
+      this.logger.log('Bước 1: Đang thu thập RSS feed...');
       const categorizedNews = await this.rssService.fetchAllCategories();
 
-      // 메트릭 기록
+      // Ghi nhận chỉ số
       metrics.rss.byCategory.business = categorizedNews.business.length;
       metrics.rss.byCategory.tech = categorizedNews.tech.length;
       metrics.rss.byCategory.society = categorizedNews.society.length;
@@ -121,8 +121,8 @@ export class NewsletterService {
         categorizedNews.society.length +
         categorizedNews.world.length;
 
-      // Step 2: AI 선별 (카테고리별 병렬 처리)
-      this.logger.log('Step 2: AI selecting news from each category...');
+      // Bước 2: AI chọn lọc (xử lý song song theo danh mục)
+      this.logger.log('Bước 2: AI đang chọn lọc tin tức từ mỗi danh mục...');
       const categories: CategoryData[] = [
         { key: 'business', items: categorizedNews.business },
         { key: 'tech', items: categorizedNews.tech },
@@ -137,7 +137,7 @@ export class NewsletterService {
       const selectionResults: SelectionResult[] =
         await Promise.all(selectionPromises);
 
-      // DEV MODE: AI 선별 리포트 생성
+      // DEV MODE: Tạo báo cáo chọn lọc AI
       if (this.devModeConfig.isDevMode) {
         const selectionResultMap = new Map<NewsCategory, SelectionResult>();
         categories.forEach((cat, idx) => {
@@ -149,10 +149,10 @@ export class NewsletterService {
           selectionResultMap,
         );
         const reportPath = this.selectionReportService.saveReport(reportHtml);
-        this.logger.log(`📊 Selection report generated: ${reportPath}`);
+        this.logger.log(`📊 Báo cáo chọn lọc đã được tạo: ${reportPath}`);
       }
 
-      // 선별된 뉴스 추출
+      // Trích xuất tin tức đã chọn
       const selectedNews: NewsItem[] = [];
 
       for (let i = 0; i < categories.length; i++) {
@@ -167,29 +167,29 @@ export class NewsletterService {
         }
       }
 
-      this.logger.log(`Selected ${selectedNews.length} news items`);
+      this.logger.log(`Đã chọn ${selectedNews.length} tin tức`);
 
-      // 통합 필터 통계
+      // Thống kê bộ lọc tổng hợp
       const filterStats = this.aiService.aggregateFilterStats(selectionResults);
       this.logger.log(
-        `Filter stats: scanned=${filterStats.totalScanned}, blocked=${
+        `Thống kê bộ lọc: đã quét=${filterStats.totalScanned}, đã chặn=${
           filterStats.blocked.crime +
           filterStats.blocked.gossip +
           filterStats.blocked.politicalStrife
         }`,
       );
 
-      // 메트릭 기록
+      // Ghi nhận chỉ số
       metrics.aiSelection.totalFiltered = filterStats.totalScanned;
       metrics.aiSelection.toxicBlocked = filterStats.blocked;
       metrics.aiSelection.selected = selectedNews.length;
 
-      // Step 3: 본문 스크래핑
-      this.logger.log('Step 3: Scraping article contents...');
+      // Bước 3: Cào nội dung bài viết
+      this.logger.log('Bước 3: Đang cào nội dung bài viết...');
       const allScrapedNews: ScrapedNews[] =
         await this.scraperService.scrapeMultipleArticles(selectedNews);
 
-      // 메트릭 기록
+      // Ghi nhận chỉ số
       metrics.scraping.attempted = selectedNews.length;
       metrics.scraping.succeeded = allScrapedNews.length;
       metrics.scraping.successRate =
@@ -197,24 +197,24 @@ export class NewsletterService {
           ? (allScrapedNews.length / selectedNews.length) * 100
           : 0;
 
-      // 카테고리별 상위 3개로 제한
+      // Giới hạn tối đa 3 tin mỗi danh mục
       const scrapedNews: ScrapedNews[] = this.limitByCategory(
         allScrapedNews,
         3,
       );
       this.logger.log(
-        `Limited to ${scrapedNews.length} news (3 per category max)`,
+        `Đã giới hạn còn ${scrapedNews.length} tin (tối đa 3 tin mỗi danh mục)`,
       );
 
-      // Step 4: AI 인사이트 생성
-      this.logger.log('Step 4: Generating insights...');
+      // Bước 4: Tạo insight AI
+      this.logger.log('Bước 4: Đang tạo insight...');
       const insights: InsightResult[] =
         await this.aiService.generateInsights(scrapedNews);
 
-      // 메트릭 기록 + 실패한 기사 제외
+      // Ghi nhận chỉ số + loại bỏ tin thất bại
       metrics.insights.attempted = scrapedNews.length;
 
-      // 인덱스 기반 Map 생성 (AI가 순서를 바꾸거나 건너뛰어도 안전하게 매핑)
+      // Tạo Map dựa trên index (để ánh xạ an toàn ngay cả khi AI thay đổi thứ tự hoặc bỏ qua)
       const insightMap = new Map<number, InsightResult>();
       for (const insight of insights) {
         if (insight.index !== undefined) {
@@ -227,7 +227,7 @@ export class NewsletterService {
         const news: ScrapedNews = scrapedNews[i];
         const insight: InsightResult | undefined = insightMap.get(i);
 
-        // AI 인사이트가 있는 경우 포함
+        // Có insight AI thì bao gồm
         if (insight && insight.detoxedTitle) {
           processedNews.push({
             original: news,
@@ -236,42 +236,42 @@ export class NewsletterService {
             insight: insight.insight,
           });
 
-          // fallback 여부에 따라 카운트 분리
+          // Phân loại theo fallback
           if (insight.isFallback) {
             metrics.insights.fallback++;
           } else {
             metrics.insights.succeeded++;
           }
         } else {
-          // 완전 실패한 경우 제외
+          // Loại bỏ hoàn toàn nếu thất bại
           metrics.insights.failed++;
           this.logger.warn(
-            `Insight generation failed for index ${i}: ${news.title} - excluding from newsletter`,
+            `Tạo insight thất bại cho index ${i}: ${news.title} - loại khỏi bản tin`,
           );
         }
       }
 
       this.logger.log(
-        `Final news count after insight filtering: ${processedNews.length}`,
+        `Số lượng tin cuối cùng sau khi lọc insight: ${processedNews.length}`,
       );
 
-      // Step 5: 사설 통합 분석
-      this.logger.log('Step 5: Processing editorials...');
+      // Bước 5: Phân tích xã luận tổng hợp
+      this.logger.log('Bước 5: Đang xử lý xã luận...');
       let editorialSynthesis: EditorialSynthesis | undefined;
 
-      // 5-1. 보수/진보 사설 수집
+      // 5-1. Thu thập xã luận bảo thủ/tự do
       const [conservative, liberal]: [Editorial[], Editorial[]] =
         await Promise.all([
           this.rssService.fetchEditorials('conservative'),
           this.rssService.fetchEditorials('liberal'),
         ]);
 
-      // 5-2. AI 매칭 (같은 주제 찾기)
+      // 5-2. AI khớp chủ đề (tìm chủ đề giống nhau)
       const match = await this.aiService.matchEditorials(conservative, liberal);
       metrics.editorial.matchFound = !!match;
 
       if (match) {
-        // 5-3. 매칭된 사설 스크래핑
+        // 5-3. Cào nội dung xã luận đã khớp
         const [consContent, libContent] = await Promise.all([
           this.scraperService.scrapeArticle(
             conservative[match.conservativeIdx].link,
@@ -279,7 +279,7 @@ export class NewsletterService {
           this.scraperService.scrapeArticle(liberal[match.liberalIdx].link),
         ]);
 
-        // 5-4. AI 통합 분석
+        // 5-4. AI phân tích tổng hợp
         if (consContent && libContent) {
           editorialSynthesis =
             (await this.aiService.synthesizeEditorials(
@@ -288,77 +288,76 @@ export class NewsletterService {
               match.topic,
             )) ?? undefined;
           metrics.editorial.synthesisSuccess = !!editorialSynthesis;
-          this.logger.log(`Editorial synthesis completed: ${match.topic}`);
+          this.logger.log(`Hoàn thành tổng hợp xã luận: ${match.topic}`);
         } else {
-          this.logger.warn('Failed to scrape editorial contents');
+          this.logger.warn('Không thể cào nội dung xã luận');
         }
       } else {
-        this.logger.log('No matching editorial pair found for today');
+        this.logger.log('Không tìm thấy cặp xã luận tương đồng cho hôm nay');
       }
 
-      // Step 5.5: 품질 게이트 검증
-      this.logger.log('Step 5.5: Validating quality gate...');
+      // Bước 5.5: Kiểm tra cổng chất lượng
+      this.logger.log('Bước 5.5: Đang kiểm tra cổng chất lượng...');
 
       metrics.final.newsCount = processedNews.length;
 
-      // 기준 1: 최소 뉴스 개수 (8개)
+      // Tiêu chí 1: Số lượng tin tối thiểu (8 tin)
       const MIN_NEWS_COUNT = 8;
       if (processedNews.length < MIN_NEWS_COUNT) {
         metrics.final.qualityGatePassed = false;
-        metrics.final.failureReason = `Insufficient news count: ${processedNews.length} < ${MIN_NEWS_COUNT}`;
+        metrics.final.failureReason = `Số lượng tin không đủ: ${processedNews.length} < ${MIN_NEWS_COUNT}`;
         this.logMetrics(metrics);
         this.logger.error(
-          `❌ Quality Gate Failed: ${metrics.final.failureReason}`,
+          `❌ Cổng chất lượng thất bại: ${metrics.final.failureReason}`,
         );
-        this.logger.warn('Newsletter generation aborted - not sending email');
+        this.logger.warn('Hủy tạo bản tin - không gửi email');
         return;
       }
 
-      // 기준 2: 스크래핑 성공률 (60%)
+      // Tiêu chí 2: Tỷ lệ cào thành công (60%)
       const MIN_SCRAPING_SUCCESS_RATE = 60;
       if (metrics.scraping.successRate < MIN_SCRAPING_SUCCESS_RATE) {
         metrics.final.qualityGatePassed = false;
-        metrics.final.failureReason = `Low scraping success rate: ${metrics.scraping.successRate.toFixed(1)}% < ${MIN_SCRAPING_SUCCESS_RATE}%`;
+        metrics.final.failureReason = `Tỷ lệ cào thành công thấp: ${metrics.scraping.successRate.toFixed(1)}% < ${MIN_SCRAPING_SUCCESS_RATE}%`;
         this.logMetrics(metrics);
         this.logger.error(
-          `❌ Quality Gate Failed: ${metrics.final.failureReason}`,
+          `❌ Cổng chất lượng thất bại: ${metrics.final.failureReason}`,
         );
-        this.logger.warn('Newsletter generation aborted - not sending email');
+        this.logger.warn('Hủy tạo bản tin - không gửi email');
         return;
       }
 
-      // 품질 게이트 통과
+      // Cổng chất lượng thông qua
       metrics.final.qualityGatePassed = true;
-      this.logger.log('✅ Quality Gate Passed');
+      this.logger.log('✅ Cổng chất lượng thông qua');
 
-      // Step 6: 뉴스레터 데이터 구성
+      // Step 6: Building newsletter data...
       this.logger.log('Step 6: Building newsletter data...');
-      const koreaDate = new Date()
-        .toLocaleDateString('ko-KR', {
-          timeZone: 'Asia/Seoul',
+      const vnDate = new Date()
+        .toLocaleDateString('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
         })
-        .replace(/\. /g, '-')
-        .replace('.', '');
+        .replace(/\//g, '-');
 
       const newsletterData: NewsletterData = {
-        date: koreaDate,
+        date: vnDate,
         protectionLog: this.aiService.generateProtectionLog(filterStats),
         processedNews,
         editorialSynthesis,
       };
 
-      // Step 7: HTML 렌더링 및 프리뷰
-      this.logger.log('Step 7: Rendering newsletter...');
+      // Bước 7: Render HTML và xem trước
+      this.logger.log('Bước 7: Đang render bản tin...');
       const html = this.emailService.renderNewsletter(newsletterData);
 
-      // 프리뷰 로깅 (이메일 발송은 제외)
-      this.logger.log('--- Newsletter Preview ---');
-      this.logger.log(`Date: ${newsletterData.date}`);
-      this.logger.log(`Protection Log: ${newsletterData.protectionLog}`);
-      this.logger.log(`News Count: ${processedNews.length}`);
+      // Log xem trước (ngoại trừ việc gửi email)
+      this.logger.log('--- Xem trước Bản tin ---');
+      this.logger.log(`Ngày: ${newsletterData.date}`);
+      this.logger.log(`Nhật ký bảo vệ: ${newsletterData.protectionLog}`);
+      this.logger.log(`Số lượng tin: ${processedNews.length}`);
       for (let i = 0; i < processedNews.length; i++) {
         const news: ProcessedNews = processedNews[i];
         this.logger.log(
@@ -366,22 +365,22 @@ export class NewsletterService {
         );
       }
       if (editorialSynthesis) {
-        this.logger.log(`Editorial Topic: ${editorialSynthesis.topic}`);
+        this.logger.log(`Chủ đề xã luận: ${editorialSynthesis.topic}`);
       }
-      this.logger.log(`HTML Length: ${html.length} characters`);
+      this.logger.log(`Độ dài HTML: ${html.length} ký tự`);
 
-      // Step 7: Email Sending
-      this.logger.log('Step 7: Sending newsletter email...');
+      // Bước 7 (tiếp): Gửi email
+      this.logger.log('Bước 7 (tiếp): Đang gửi email bản tin...');
 
-      // Check dry-run mode (DEV_MODE or NEWSLETTER_DRY_RUN)
+      // Kiểm tra chế độ dry-run (DEV_MODE hoặc NEWSLETTER_DRY_RUN)
       if (this.devModeConfig.skipEmail) {
         if (this.devModeConfig.isDevMode) {
-          this.logger.warn('[DEV] Email sending disabled in dev mode');
+          this.logger.warn('[DEV] Đã tắt gửi email trong chế độ dev');
         } else {
-          this.logger.warn('🔴 DRY-RUN MODE: Email sending disabled');
+          this.logger.warn('🔴 CHẾ ĐỘ DRY-RUN: Đã tắt gửi email');
         }
         this.logger.log(
-          'To enable email sending, set NEWSLETTER_DRY_RUN=false and DEV_MODE=false',
+          'Để bật gửi email, hãy đặt NEWSLETTER_DRY_RUN=false và DEV_MODE=false',
         );
       } else {
         try {
@@ -389,40 +388,35 @@ export class NewsletterService {
 
           if (recipients.length === 0) {
             this.logger.warn(
-              '⚠️ No active subscribers found. Skipping email send.',
+              '⚠️ Không tìm thấy người đăng ký hoạt động. Bỏ qua gửi email.',
             );
           } else {
-            this.logger.log(`📤 Sending to ${recipients.length}`);
+            this.logger.log(`📤 Đang gửi đến ${recipients.length} người nhận`);
 
             await this.emailService.sendNewsletter(recipients, html);
 
-            this.logger.log(`✅ Newsletter sending completed`);
+            this.logger.log(`✅ Hoàn tất gửi bản tin`);
             this.logger.log(
-              `📊 Email size: ${(html.length / 1024).toFixed(2)} KB`,
+              `📊 Kích thước email: ${(html.length / 1024).toFixed(2)} KB`,
             );
           }
         } catch (error) {
-          this.logger.error('❌ Failed to send newsletter email', error);
+          this.logger.error('❌ Gửi email bản tin thất bại', error);
+          this.logger.warn('Đã tạo bản tin nhưng gửi email thất bại');
           this.logger.warn(
-            '⚠️ Newsletter generation completed but email delivery failed',
+            'Hãy kiểm tra thông tin đăng nhập Resend và địa chỉ người nhận',
           );
-          this.logger.warn(
-            'Consider checking Gmail credentials and recipient addresses',
-          );
-          // Don't re-throw - email failure shouldn't break the entire pipeline
+          //Không throw lại lỗi - lỗi email không nên làm hỏng toàn bộ pipeline
         }
       }
-
-      // Step 8: 키워드 추출 및 아카이브 저장
-      this.logger.log(
-        'Step 8: Extracting keywords and archiving newsletter...',
-      );
+      //Bước 8: Trích xuất từ khóa và lưu trữ bản tin
+      this.logger.log('Bước 8: Đang trích xuất từ khóa và lưu trữ bản tin...');
       try {
-        // 기존 키워드 조회 (일관성 유지를 위해)
+        // Lấy từ khóa hiện có (để duy trì tính nhất quán)
         const existingKeywords =
           await this.supabaseService.getAllExistingKeywords();
 
-        // 키워드 추출 (이슈 추적용 - 기존 키워드 참조, 기사별 매핑)
+        // Trích xuất từ khóa (để theo dõi vấn đề - tham chiếu từ khóa hiện có, ánh xạ theo bài viết)
         const keywordResult = await this.aiService.extractKeywords(
           processedNews.map((news) => ({
             title: news.rewrittenTitle ?? news.original.title,
@@ -431,7 +425,7 @@ export class NewsletterService {
           existingKeywords,
         );
         this.logger.log(
-          `Extracted ${keywordResult.all.length} keywords for issue tracking`,
+          `Đã trích xuất ${keywordResult.all.length} từ khóa để theo dõi vấn đề`,
         );
 
         await this.saveToArchive(
@@ -440,26 +434,26 @@ export class NewsletterService {
           filterStats,
           keywordResult,
         );
-        this.logger.log('✅ Newsletter archived successfully');
+        this.logger.log('✅ Đã lưu trữ bản tin thành công');
       } catch (archiveError) {
         this.logger.error(
-          `❌ Failed to archive newsletter (non-fatal): ${archiveError}`,
+          `❌ Lưu trữ bản tin thất bại (không nghiêm trọng): ${archiveError}`,
         );
       }
 
-      // Step 9: 최종 메트릭 출력
+      // Bước 9: In chỉ số cuối cùng
       this.logMetrics(metrics);
 
-      this.logger.log('=== NoCan News Newsletter Generation Completed ===');
+      this.logger.log('=== Hoàn tất tạo bản tin NoCan News ===');
     } catch (error) {
-      this.logger.error('Newsletter generation failed', error);
+      this.logger.error('Tạo bản tin thất bại', error);
       this.logMetrics(metrics);
       throw error;
     }
   }
 
   /**
-   * 카테고리별 최대 N개로 제한
+   * Giới hạn tối đa N tin mỗi danh mục
    */
   private limitByCategory(news: ScrapedNews[], limit: number): ScrapedNews[] {
     const countByCategory: Record<string, number> = {};
@@ -479,76 +473,76 @@ export class NewsletterService {
   }
 
   /**
-   * 메트릭을 로그로 출력
+   * Ghi chỉ số vào log
    */
   private logMetrics(metrics: NewsletterMetrics): void {
     this.logger.log('');
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    this.logger.log('📊 Newsletter Generation Metrics');
+    this.logger.log('📊 Chỉ số Tạo Bản tin');
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    // RSS 수집
+    // Thu thập RSS
     this.logger.log('');
-    this.logger.log('📰 RSS Collection:');
-    this.logger.log(`   Total Scanned: ${metrics.rss.totalScanned}`);
-    this.logger.log(`   Business: ${metrics.rss.byCategory.business || 0}`);
-    this.logger.log(`   Tech: ${metrics.rss.byCategory.tech || 0}`);
-    this.logger.log(`   Society: ${metrics.rss.byCategory.society || 0}`);
-    this.logger.log(`   World: ${metrics.rss.byCategory.world || 0}`);
+    this.logger.log('📰 Thu thập RSS:');
+    this.logger.log(`   Tổng đã quét: ${metrics.rss.totalScanned}`);
+    this.logger.log(`   Kinh doanh: ${metrics.rss.byCategory.business || 0}`);
+    this.logger.log(`   Công nghệ: ${metrics.rss.byCategory.tech || 0}`);
+    this.logger.log(`   Xã hội: ${metrics.rss.byCategory.society || 0}`);
+    this.logger.log(`   Thế giới: ${metrics.rss.byCategory.world || 0}`);
 
-    // AI 선별 (독성 필터)
+    // AI chọn lọc (Bộ lọc độc hại)
     this.logger.log('');
-    this.logger.log('🤖 AI Selection (Toxicity Filter):');
-    this.logger.log(`   Total Filtered: ${metrics.aiSelection.totalFiltered}`);
+    this.logger.log('🤖 AI Chọn lọc (Bộ lọc độc hại):');
+    this.logger.log(`   Tổng đã lọc: ${metrics.aiSelection.totalFiltered}`);
     this.logger.log(
-      `   Toxic Blocked: ${
+      `   Đã chặn tin độc hại: ${
         metrics.aiSelection.toxicBlocked.crime +
         metrics.aiSelection.toxicBlocked.gossip +
         metrics.aiSelection.toxicBlocked.politicalStrife
-      } (Crime: ${metrics.aiSelection.toxicBlocked.crime}, Gossip: ${
+      } (Tội phạm: ${metrics.aiSelection.toxicBlocked.crime}, Chuyện phiếm: ${
         metrics.aiSelection.toxicBlocked.gossip
-      }, Political: ${metrics.aiSelection.toxicBlocked.politicalStrife})`,
+      }, Chính trị: ${metrics.aiSelection.toxicBlocked.politicalStrife})`,
     );
-    this.logger.log(`   Selected: ${metrics.aiSelection.selected}`);
+    this.logger.log(`   Đã chọn: ${metrics.aiSelection.selected}`);
 
-    // 스크래핑
+    // Cào dữ liệu
     this.logger.log('');
-    this.logger.log('📄 Scraping:');
-    this.logger.log(`   Attempted: ${metrics.scraping.attempted}`);
-    this.logger.log(`   Succeeded: ${metrics.scraping.succeeded}`);
+    this.logger.log('📄 Cào dữ liệu:');
+    this.logger.log(`   Đã thử: ${metrics.scraping.attempted}`);
+    this.logger.log(`   Thành công: ${metrics.scraping.succeeded}`);
     this.logger.log(
-      `   Success Rate: ${metrics.scraping.successRate.toFixed(1)}%`,
+      `   Tỷ lệ thành công: ${metrics.scraping.successRate.toFixed(1)}%`,
     );
 
-    // AI 인사이트
+    // AI Insight
     this.logger.log('');
-    this.logger.log('💡 AI Insights:');
-    this.logger.log(`   Attempted: ${metrics.insights.attempted}`);
-    this.logger.log(`   Succeeded: ${metrics.insights.succeeded}`);
+    this.logger.log('💡 AI Insight:');
+    this.logger.log(`   Đã thử: ${metrics.insights.attempted}`);
+    this.logger.log(`   Thành công: ${metrics.insights.succeeded}`);
     this.logger.log(`   Fallback: ${metrics.insights.fallback}`);
-    this.logger.log(`   Failed (Excluded): ${metrics.insights.failed}`);
+    this.logger.log(`   Thất bại (Loại bỏ): ${metrics.insights.failed}`);
 
-    // 사설
+    // Xã luận
     this.logger.log('');
-    this.logger.log('📝 Editorial Analysis:');
+    this.logger.log('📝 Phân tích Xã luận:');
     this.logger.log(
-      `   Match Found: ${metrics.editorial.matchFound ? 'Yes' : 'No'}`,
+      `   Tìm thấy cặp bài: ${metrics.editorial.matchFound ? 'Có' : 'Không'}`,
     );
     if (metrics.editorial.matchFound) {
       this.logger.log(
-        `   Synthesis Success: ${metrics.editorial.synthesisSuccess ? 'Yes' : 'No'}`,
+        `   Tổng hợp thành công: ${metrics.editorial.synthesisSuccess ? 'Có' : 'Không'}`,
       );
     }
 
-    // 최종 결과
+    // Kết quả cuối cùng
     this.logger.log('');
-    this.logger.log('✨ Final Result:');
-    this.logger.log(`   News Count: ${metrics.final.newsCount}`);
+    this.logger.log('✨ Kết quả cuối cùng:');
+    this.logger.log(`   Số lượng tin: ${metrics.final.newsCount}`);
     this.logger.log(
-      `   Quality Gate: ${metrics.final.qualityGatePassed ? '✅ PASSED' : '❌ FAILED'}`,
+      `   Cổng chất lượng: ${metrics.final.qualityGatePassed ? '✅ ĐẠT' : '❌ KHÔNG ĐẠT'}`,
     );
     if (metrics.final.failureReason) {
-      this.logger.log(`   Failure Reason: ${metrics.final.failureReason}`);
+      this.logger.log(`   Lý do thất bại: ${metrics.final.failureReason}`);
     }
 
     this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -556,7 +550,7 @@ export class NewsletterService {
   }
 
   /**
-   * 뉴스레터를 아카이브에 저장
+   * Lưu bản tin vào kho lưu trữ
    */
   private async saveToArchive(
     data: NewsletterData,
@@ -574,26 +568,27 @@ export class NewsletterService {
     );
     const title = this.emailService.getEmailSubject();
 
-    // 수신거부 링크 제거 (cheerio로 HTML 파싱하여 안정적으로 처리)
+    // Xóa liên kết hủy đăng ký (xử lý ổn định bằng cheerio để phân tích HTML)
     const $ = cheerio.load(html);
 
-    // unsubscribe 링크를 찾아서 텍스트로 변환
+    // Tìm liên kết unsubscribe và chuyển đổi thành văn bản
     $('a').each((_, element) => {
       const $el = $(element);
       const href = $el.attr('href') || '';
       const text = $el.text();
 
-      // 수신거부 또는 웹에서 보기 링크인 경우
+      // Trường hợp là liên kết hủy đăng ký hoặc xem trên web
       if (
         href.includes('unsubscribe') ||
         href.includes('{{UNSUBSCRIBE_URL}}') ||
-        text.includes('수신거부') ||
+        text.includes('Hủy đăng ký') || // Vietnamese
         text.includes('Unsubscribe') ||
         href.includes('archive') ||
         href.includes('{{ARCHIVE_URL}}') ||
-        text.includes('웹에서 보기')
+        text.includes('Xem trên web') || // Vietnamese
+        text.includes('Xem trên trình duyệt') // Vietnamese alternate
       ) {
-        // 링크 요소 완전히 삭제
+        // Xóa hoàn toàn phần tử liên kết
         $el.remove();
       }
     });
@@ -610,7 +605,7 @@ export class NewsletterService {
   }
 
   /**
-   * NewsletterData를 ContentData 형식으로 변환
+   * Chuyển đổi NewsletterData sang định dạng ContentData
    */
   private buildContentData(
     data: NewsletterData,

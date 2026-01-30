@@ -1,6 +1,6 @@
 /**
- * AWS SES 이메일 발송 테스트 스크립트
- * 사용법: npx ts-node src/test-email.ts your-email@example.com
+ * Script kiểm tra gửi email qua Resend
+ * Cách dùng: npx ts-node src/test-email.ts your-email@example.com
  */
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -13,43 +13,43 @@ async function testEmail() {
 
   if (!testRecipient) {
     logger.error(
-      '사용법: npx ts-node src/test-email.ts your-email@example.com',
+      'Cách dùng: npx ts-node src/test-email.ts your-email@example.com',
     );
     process.exit(1);
   }
 
-  logger.log(`테스트 이메일 발송 시작: ${testRecipient}`);
+  logger.log(`Bắt đầu gửi email kiểm tra: ${testRecipient}`);
 
   const app = await NestFactory.createApplicationContext(AppModule);
 
   try {
     const emailService = app.get(EmailService);
 
-    // 테스트용 간단한 HTML
+    // HTML đơn giản để kiểm tra
     const testHtml = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: sans-serif; padding: 20px;">
-  <h1>🔇 NoCan News - AWS SES 테스트</h1>
-  <p>AWS SES 이메일 발송이 정상적으로 작동합니다!</p>
+  <h1>🔇 NoCan News - Kiểm tra Resend</h1>
+  <p>Gửi email qua Resend hoạt động bình thường!</p>
   <hr>
   <p style="color: #666; font-size: 12px;">
-    발송 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+    Thời gian gửi: ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
   </p>
-  <a href="{{UNSUBSCRIBE_URL}}">수신거부</a>
+  <a href="{{UNSUBSCRIBE_URL}}">Hủy đăng ký</a>
 </body>
 </html>
     `.trim();
 
-    // 테스트 수신자 (ID는 임의값)
+    // Người nhận kiểm tra (ID ngẫu nhiên)
     const recipients = [{ id: 'test-id', email: testRecipient }];
 
     await emailService.sendNewsletter(recipients, testHtml);
 
-    logger.log('✅ 테스트 이메일 발송 완료!');
+    logger.log('✅ Gửi email kiểm tra hoàn tất!');
   } catch (error) {
-    logger.error('❌ 테스트 이메일 발송 실패:', error);
+    logger.error('❌ Gửi email kiểm tra thất bại:', error);
   } finally {
     await app.close();
     process.exit(0);

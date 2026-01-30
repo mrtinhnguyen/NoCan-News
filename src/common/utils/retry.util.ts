@@ -1,5 +1,5 @@
 /**
- * Exponential backoff를 사용한 재시도 유틸리티
+ * Tiện ích thử lại sử dụng Exponential backoff
  */
 
 export interface RetryOptions {
@@ -9,12 +9,12 @@ export interface RetryOptions {
 }
 
 /**
- * 함수 실행에 실패하면 exponential backoff로 재시도
+ * Thử lại với exponential backoff nếu hàm thực thi thất bại
  *
- * @param fn 실행할 비동기 함수
- * @param options 재시도 옵션
- * @returns 성공 시 함수 반환값
- * @throws 모든 재시도 실패 시 마지막 에러
+ * @param fn Hàm bất đồng bộ cần thực thi
+ * @param options Tùy chọn thử lại
+ * @returns Giá trị trả về của hàm khi thành công
+ * @throws Lỗi cuối cùng nếu tất cả các lần thử lại đều thất bại
  *
  * @example
  * const result = await withRetry(
@@ -35,17 +35,17 @@ export async function withRetry<T>(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // 마지막 시도였으면 더 이상 재시도하지 않음
+      // Không thử lại nếu là lần thử cuối cùng
       if (attempt > maxRetries) {
         break;
       }
 
-      // 재시도 콜백 호출
+      // Gọi callback thử lại
       if (onRetry) {
         onRetry(attempt, lastError);
       }
 
-      // Exponential backoff: 1초 → 2초 → 4초
+      // Exponential backoff: 1s → 2s → 4s
       const delay = baseDelayMs * Math.pow(2, attempt - 1);
       await sleep(delay);
     }
@@ -55,7 +55,7 @@ export async function withRetry<T>(
 }
 
 /**
- * 지정된 시간(ms) 동안 대기
+ * Chờ trong khoảng thời gian chỉ định (ms)
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

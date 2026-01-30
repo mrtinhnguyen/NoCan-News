@@ -1,113 +1,113 @@
-# NoCan News (News Noise Canceling)
+# NoCan News (Khử Nhiễu Tin Tức)
 
-> "세상의 소음은 끄고, 구조적 맥락만 남긴다 (Noise Off, Context On)"
+> "Tắt tiếng ồn, Bật bối cảnh (Noise Off, Context On)"
 
-불안을 파는 뉴스를 차단하고, 안도감과 통찰을 제공하는 AI 기반 이메일 뉴스레터 서비스입니다.
+Một dịch vụ bản tin email dựa trên AI giúp chặn các tin tức bán sự lo lắng, mang lại sự an tâm và thông tin sâu sắc.
 
-## 핵심 철학 (Philosophy)
+## Triết lý Cốt lõi (Philosophy)
 
-노르웨이 철학자 **Peter Wessel Zapffe**의 방어 기제 이론을 현대적 정보 필터링 시스템으로 재해석했습니다.
+Hệ thống lọc thông tin hiện đại được tái giải thích dựa trên lý thuyết cơ chế phòng vệ của triết gia người Na Uy **Peter Wessel Zapffe**.
 
-### 1. Isolation (고립)
+### 1. Isolation (Cô lập)
 
-> _"불필요한 비극을 의식에서 추방하라."_
+> _"Trục xuất những bi kịch không cần thiết ra khỏi ý thức."_
 
-- 살인, 성범죄, 연예 가십, 정치적 비방 등 **독성 정보(Toxic Info)**를 AI가 식별하여 사전 차단합니다.
+- AI nhận diện và chặn trước các **thông tin độc hại (Toxic Info)** như giết người, tội phạm tình dục, chuyện phiếm giải trí, phỉ báng chính trị.
 
-### 2. Anchoring (고착)
+### 2. Anchoring (Neo đậu)
 
-> _"혼란 속에 구조라는 닻을 내려라."_
+> _"Thả neo cấu trúc giữa dòng hỗn loạn."_
 
-- 불안을 조장하는 낚시성 헤드라인을 **건조한 팩트**로 중화(Neutralize)합니다.
-- 파편화된 뉴스를 **[현상-맥락-함의]**의 3단 구조로 재조립하여 사용자에게 지적 통제감을 제공합니다.
+- Trung hòa (Neutralize) các tiêu đề giật gân gây lo lắng thành **sự thật khô khan**.
+- Tái cấu trúc các tin tức rời rạc theo mô hình **[Hiện tượng - Bối cảnh - Hệ quả]** để mang lại cảm giác kiểm soát trí tuệ cho người dùng.
 
-## 주요 기능
+## Tính năng Chính
 
-### Part 1. Protection Log (방어 로그)
+### Part 1. Protection Log (Nhật ký Bảo vệ)
 
-> "오늘 AI가 총 2,450건을 스캔하여 살인/범죄 120건, 정치비방 340건을 차단했습니다."
+> "Hôm nay AI đã quét tổng cộng 2,450 tin, chặn 120 tin tội phạm, 340 tin phỉ báng chính trị."
 
-### Part 2. Headline Detox & Micro-Briefing
+### Part 2. Headline Detox & Micro-Briefing (Giải độc Tiêu đề & Tóm tắt Vi mô)
 
-- ~~[원문] 개미들 곡소리... 삼성전자 4만전자 가나?~~
-- **[AI 수정] 삼성전자, 업황 둔화로 52주 신저가 기록**
+- ~~[Gốc] Nhà đầu tư khóc ròng... Samsung Electronics có về đầu 4?~~
+- **[AI Chỉnh sửa] Samsung Electronics ghi nhận mức thấp nhất 52 tuần do suy thoái ngành**
 
-**3-Line Insight:**
+**3-Line Insight (Thông tin chuyên sâu 3 dòng):**
 
-1. **Fact:** 무슨 일이 있었는가?
-2. **Context:** 왜 일어났는가? (구조적 원인)
-3. **Implication:** 무엇을 의미하는가?
+1. **Fact:** Chuyện gì đã xảy ra?
+2. **Context:** Tại sao nó xảy ra? (Nguyên nhân cấu trúc)
+3. **Implication:** Nó có ý nghĩa gì?
 
-### Part 3. Editorial Synthesis (사설 통합)
+### Part 3. Editorial Synthesis (Tổng hợp Xã luận)
 
-- 보수(조중동) vs 진보(한경오) 사설의 균형 잡힌 분석
-- **[쟁점 - 양측 논리 - 구조적 본질]** 구조의 통합 리포트
+- Phân tích cân bằng giữa xã luận Bảo thủ và Tự do.
+- Báo cáo tích hợp theo cấu trúc **[Vấn đề tranh luận - Lập luận hai bên - Bản chất cấu trúc]**.
 
-## 이메일 미리보기
+## Xem trước Email
 
-실제 발송되는 뉴스레터 형식입니다.
+Đây là định dạng bản tin thực tế được gửi đi.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     🔇 NoCan News                           │
-│          세상의 소음은 끄고, 구조적 맥락만 남긴다             │
+│          Tắt tiếng ồn, Bật bối cảnh (Noise Off, Context On) │
 │                      2024-12-27                             │
 ├─────────────────────────────────────────────────────────────┤
-│ 🛡️ 오늘 AI가 총 847건을 스캔하여 범죄 23건, 가십 45건,      │
-│    정치적 비방 67건을 차단했습니다.                          │
+│ 🛡️ Hôm nay AI đã quét 847 tin, chặn 23 tin tội phạm, 45 tin │
+│    chuyện phiếm, 67 tin tranh cãi chính trị.                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│ 📌 경제                                                     │
+│ 📌 Kinh tế                                                  │
 │ ─────────────────────────────────────────────────────────── │
 │ ┌─────────────────────────────────────────────────────────┐ │
-│ │ 개미들 곡소리... 삼성전자 4만전자 가나? (취소선)          │ │
+│ │ Nhà đầu tư khóc ròng... Samsung Electronics... (Gạch)   │ │
 │ │                                                         │ │
-│ │ 삼성전자, 업황 둔화로 52주 신저가 기록                   │ │
-│ │ 📰 한국경제                                              │ │
+│ │ Samsung Electronics ghi nhận mức thấp nhất 52 tuần      │ │
+│ │ 📰 Korea Economic Daily                                 │ │
 │ │                                                         │ │
-│ │ 📍 Fact: 삼성전자 주가가 52주 최저가를 기록했다.         │ │
-│ │ 📍 Context: 글로벌 반도체 수요 둔화와 메모리 가격 하락   │ │
-│ │            압박이 지속되고 있다.                         │ │
-│ │ 📍 Implication: 반도체 업황 회복 시점에 따라 주가        │ │
-│ │                반등 가능성이 결정될 전망이다.            │ │
+│ │ 📍 Fact: Cổ phiếu Samsung đạt mức thấp nhất 52 tuần.    │ │
+│ │ 📍 Context: Nhu cầu bán dẫn toàn cầu giảm và áp lực     │ │
+│ │            giá bộ nhớ giảm liên tục.                    │ │
+│ │ 📍 Implication: Khả năng phục hồi phụ thuộc vào thời    │ │
+│ │                điểm phục hồi của ngành bán dẫn.         │ │
 │ └─────────────────────────────────────────────────────────┘ │
 │                                                             │
-│ 📌 기술                                                     │
+│ 📌 Công nghệ                                                │
 │ ─────────────────────────────────────────────────────────── │
-│ │ (동일 형식의 뉴스 카드들...)                             │ │
+│ │ (Các thẻ tin tức định dạng tương tự...)                 │ │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│ ⚖️ 오늘의 사설 분석                                         │
+│ ⚖️ Phân tích Xã luận Hôm nay                               │
 │                                                             │
-│ [주 35시간 근로제 도입 논쟁]                                │
+│ [Tranh luận Tuần làm việc 35 giờ]                           │
 │                                                             │
-│ 🔴 핵심 쟁점: 노동자 삶의 질 향상 vs 기업 경쟁력 저하 우려  │
+│ 🔴 Điểm tranh luận: Chất lượng sống vs Cạnh tranh DN        │
 │                                                             │
 │ ┌──────────────────────┐ ┌──────────────────────┐           │
-│ │ 보수 측 논리         │ │ 진보 측 논리         │           │
-│ │ 낮은 노동생산성 상황 │ │ 근로시간 단축은 노동 │           │
-│ │ 에서 근로시간 단축은 │ │ 자 건강권 보호와 삶  │           │
-│ │ 기업 경쟁력을 약화   │ │ 의 질 향상을 위해    │           │
-│ │ 시킬 수 있다.        │ │ 필수적이다.          │           │
+│ │ Lập luận Bảo thủ     │ │ Lập luận Tự do       │           │
+│ │ Giảm giờ làm trong   │ │ Giảm giờ làm là cần  │           │
+│ │ bối cảnh năng suất   │ │ thiết để bảo vệ sức  │           │
+│ │ thấp có thể làm yếu  │ │ khỏe và nâng cao     │           │
+│ │ sức cạnh tranh DN.   │ │ chất lượng sống.     │           │
 │ └──────────────────────┘ └──────────────────────┘           │
 │                                                             │
-│ 💡 구조적 의미: 생산성 향상과 근로자 복지 사이의 균형점을   │
-│                사회적 합의로 도출해야 하는 과제다.           │
+│ 💡 Ý nghĩa cấu trúc: Cần tìm điểm cân bằng giữa tăng năng   │
+│                suất và phúc lợi qua đồng thuận xã hội.      │
 ├─────────────────────────────────────────────────────────────┤
-│         NoCan News는 AI가 큐레이션하는 뉴스레터입니다.       │
+│         NoCan News là bản tin được biên tập bởi AI.         │
 │            Powered by Gemini AI • Noise Off, Context On     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 기술 스택
+## Công nghệ Sử dụng (Tech Stack)
 
-| 구분            | 기술                          |
+| Phân loại       | Công nghệ                     |
 | --------------- | ----------------------------- |
-| Language        | TypeScript                    |
+| Ngôn ngữ        | TypeScript                    |
 | Framework       | NestJS (Standalone Mode)      |
-| Data Collection | rss-parser (Google News RSS)  |
-| Scraping        | cheerio (사설 본문 추출)      |
-| Database        | supabase                      |
+| Thu thập Dữ liệu| rss-parser (Google News RSS)  |
+| Scraping        | cheerio (Trích xuất xã luận)  |
+| Cơ sở dữ liệu   | supabase                      |
 | AI Engine       | Gemini API (gemini-2.5-flash) |
-| Email           | nodemailer (Gmail SMTP)       |
-| Scheduler       | GitHub Actions (Cron)         |
+| Email           | Resend (Thay thế Amazon SES)  |
+| Lập lịch        | GitHub Actions (Cron)         |

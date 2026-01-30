@@ -1,29 +1,29 @@
 import { EditorialStance } from '../constants';
 
 /**
- * 수집된 사설 아이템
+ * Mục xã luận đã thu thập
  */
 export interface Editorial {
   title: string;
   link: string;
   pubDate: string;
-  content?: string; // 스크래핑 후 본문
+  content?: string; // Nội dung sau khi cào
   stance: EditorialStance;
 }
 
 /**
- * AI가 생성한 사설 통합 분석
+ * Phân tích tổng hợp xã luận từ AI
  */
 export interface EditorialSynthesis {
   topic: string;
-  conflict: string; // 핵심 쟁점
-  argumentA: string; // 보수 측 논리
-  argumentB: string; // 진보 측 논리
-  synthesis: string; // 구조적/시대적 의미
+  conflict: string; // Điểm tranh luận cốt lõi
+  argumentA: string; // Luận điểm phe Bảo thủ
+  argumentB: string; // Luận điểm phe Tự do
+  synthesis: string; // Ý nghĩa cấu trúc/thời đại
 }
 
 /**
- * 뉴스레터 데이터
+ * Dữ liệu bản tin
  */
 export interface NewsletterData {
   date: string;

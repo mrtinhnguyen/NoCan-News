@@ -23,7 +23,6 @@
     "supabase:types": "supabase gen types typescript --linked > src/common/types/supabase.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.971.0",
     "@google/generative-ai": "^0.24.1",
     "@mozilla/readability": "^0.6.0",
     "@nestjs/common": "^11.0.1",
@@ -34,8 +33,8 @@
     "axios": "^1.13.2",
     "cheerio": "^1.1.2",
     "jsdom": "^27.3.0",
-    "nodemailer": "^7.0.12",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.9.1",
     "rss-parser": "^3.13.0",
     "rxjs": "^7.8.1"
   },
@@ -49,7 +48,6 @@
     "@types/jest": "^30.0.0",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^22.10.7",
-    "@types/nodemailer": "^7.0.4",
     "@types/supertest": "^6.0.2",
     "cross-env": "^10.1.0",
     "eslint": "^9.18.0",

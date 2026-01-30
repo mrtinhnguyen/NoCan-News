@@ -67,36 +67,36 @@ async function extractKeywords(
   const newsContext = newsItems
     .map(
       (news, idx) =>
-        `[${idx}] ${news.refined_title}\n- ${news.insight?.fact ?? '(인사이트 없음)'}`,
+        `[${idx}] ${news.refined_title}\n- ${news.insight?.fact ?? '(Không có insight)'}`,
     )
     .join('\n\n');
 
   const existingKeywordsSection =
     existingKeywords.length > 0
       ? `
-## ⚠️ 기존 키워드 (최우선 규칙)
-아래는 이전 뉴스레터에서 이미 사용된 키워드입니다.
-**같은 주제를 다루는 뉴스가 있다면 반드시 아래 기존 키워드를 그대로 사용하세요.**
-- 띄어쓰기, 연도, 조사 등이 다르더라도 같은 주제면 기존 키워드를 사용하세요.
+## ⚠️ Từ khóa hiện có (Quy tắc ưu tiên cao nhất)
+Dưới đây là các từ khóa đã được sử dụng trong các bản tin trước.
+**Nếu có tin tức cùng chủ đề, BẮT BUỘC phải sử dụng từ khóa hiện có.**
+- Ngay cả khi cách viết, năm, hay từ ngữ khác nhau, nếu cùng chủ đề hãy dùng từ khóa hiện có.
 
-기존 키워드 목록:
+Danh sách từ khóa hiện có:
 ${existingKeywords.map((k) => `- "${k}"`).join('\n')}
 `
       : '';
 
-  const prompt = `뉴스 목록에서 **이슈 추적용 키워드**를 추출하세요.
+  const prompt = `Trích xuất **từ khóa theo dõi vấn đề** từ danh sách tin tức.
 ${existingKeywordsSection}
-## 추출 기준
-1. **고유명사 우선:** 정책명, 법안명, 기업명, 인물명, 기술명
-2. **지속 추적 가능한 이슈:** 일회성 사건은 제외
-3. **검색 가능한 형태:** 짧고 명확한 키워드
-4. **기존 키워드 재사용:** 같은 주제의 기존 키워드가 있으면 반드시 그것을 사용
+## Tiêu chí trích xuất
+1. **Ưu tiên Danh từ riêng:** Tên chính sách, tên luật, tên doanh nghiệp, tên nhân vật, tên công nghệ
+2. **Vấn đề có thể theo dõi liên tục:** Loại bỏ các sự kiện một lần
+3. **Dạng có thể tìm kiếm:** Từ khóa ngắn gọn và rõ ràng
+4. **Tái sử dụng từ khóa hiện có:** Nếu có từ khóa hiện có cùng chủ đề, bắt buộc phải sử dụng nó
 
-## 뉴스 목록
+## Danh sách Tin tức
 ${newsContext}
 
-## 출력 형식 (JSON 배열만 출력, 최대 15개)
-["키워드1", "키워드2", "키워드3", ...]`;
+## Định dạng Đầu ra (Chỉ xuất mảng JSON, tối đa 15 từ khóa)
+["Từ khóa 1", "Từ khóa 2", "Từ khóa 3", ...]`;
 
   try {
     const result = await model.generateContent(prompt);

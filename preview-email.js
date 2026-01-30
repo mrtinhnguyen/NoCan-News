@@ -5,60 +5,60 @@ const date = '2025-12-27';
 const mockUnsubscribeUrl = 'https://nocan-news.vercel.app/unsubscribe?id=123';
 const mockArchiveUrl = 'https://nocan-news.vercel.app/archive';
 const protectionLog =
-  '오늘 AI가 총 1,247건을 스캔하여 범죄 45건, 가십 89건, 정치적 비방 123건을 차단했습니다.';
+  'Hôm nay AI đã quét tổng cộng 1,247 tin, chặn 45 tin tội phạm, 89 tin chuyện phiếm, 123 tin tranh cãi chính trị.';
 
 const mockNews = [
   {
     category: 'business',
     original: {
       title:
-        '1500원 환율 위기, 달러는 마르는데 돈 뿌리는 정부...저성장 고착화될라',
+        'Khủng hoảng tỷ giá 1500 won, đồng đô la cạn kiệt nhưng chính phủ vẫn bơm tiền... Nguy cơ tăng trưởng thấp kéo dài',
     },
-    rewrittenTitle: '원/달러 환율 1480원대 기록, 수입 물가 상승에 영향',
+    rewrittenTitle: 'Tỷ giá Won/USD ghi nhận mức 1480 won, ảnh hưởng đến giá nhập khẩu tăng',
     insight: {
-      fact: '원/달러 환율이 2025년 12월 1483.6원으로 8개월 만에 최고치를 기록하며, 원자재를 포함한 수입 물가 지수와 소비자 물가가 상승했습니다.',
+      fact: 'Tỷ giá Won/USD ghi nhận mức 1483.6 won vào tháng 12 năm 2025, cao nhất trong 8 tháng, khiến chỉ số giá nhập khẩu bao gồm nguyên liệu thô và giá tiêu dùng tăng lên.',
       context:
-        '국내에 원화 공급이 많고 달러 유입이 부족한 상황이 원화 약세의 주요 원인으로 지목되며, 주요국 통화 중 원화가 가장 큰 폭의 약세를 보이고 있습니다. 정부는 1997년 외환위기와는 다르다고 강조하고 있습니다.',
+        'Tình trạng cung tiền Won trong nước nhiều nhưng dòng vốn Đô la chảy vào thiếu hụt được chỉ ra là nguyên nhân chính khiến đồng Won suy yếu, và đồng Won đang cho thấy mức giảm giá lớn nhất trong số các đồng tiền chủ chốt. Chính phủ nhấn mạnh rằng tình hình khác với cuộc khủng hoảng tài chính năm 1997.',
       implication:
-        '지속적인 고환율은 물가 상승 압력으로 작용하여 가계 부담을 가중시키고 경제 성장률에 부정적인 영향을 줄 수 있으나, 정부는 충분한 외환보유액으로 외환위기 재발 가능성은 낮다고 판단하고 있습니다.',
+        'Tỷ giá cao kéo dài sẽ gây áp lực tăng giá cả, gia tăng gánh nặng cho hộ gia đình và có thể ảnh hưởng tiêu cực đến tốc độ tăng trưởng kinh tế, tuy nhiên chính phủ đánh giá khả năng tái diễn khủng hoảng ngoại hối là thấp do dự trữ ngoại hối đủ lớn.',
     },
   },
   {
     category: 'tech',
     original: {
       title:
-        '"더 이상 빌려 쓰지 않는다"...삼성, 자체 GPU 개발 \'기술 독립 선언\'',
+        '"Không còn đi vay nữa"... Samsung, phát triển GPU riêng \'Tuyên bố độc lập công nghệ\'',
     },
-    rewrittenTitle: '삼성전자, 100% 독자 기술 모바일 GPU 개발 성공',
+    rewrittenTitle: 'Samsung Electronics thành công phát triển GPU di động với 100% công nghệ độc quyền',
     insight: {
-      fact: '삼성전자가 외부 기술 의존 없이 100% 독자 기술로 개발한 모바일 GPU를 선보였으며, 이는 차기 엑시노스 제품에 탑재될 예정입니다.',
+      fact: 'Samsung Electronics đã giới thiệu GPU di động được phát triển bằng 100% công nghệ độc quyền mà không phụ thuộc vào công nghệ bên ngoài, dự kiến sẽ được trang bị cho các sản phẩm Exynos tiếp theo.',
       context:
-        '기존에는 미국 AMD의 기술을 토대로 GPU를 설계해왔으나, 이번 자체 GPU 개발 성공으로 외부 지식 재산권 의존도를 낮추고 막대한 수수료 지불을 절감하여 수익성을 개선하고자 합니다.',
+        'Trước đây, họ thiết kế GPU dựa trên công nghệ của AMD Mỹ, nhưng với thành công trong việc phát triển GPU riêng lần này, họ muốn giảm sự phụ thuộc vào sở hữu trí tuệ bên ngoài và tiết kiệm chi phí bản quyền khổng lồ để cải thiện lợi nhuận.',
       implication:
-        '자체 GPU 개발은 삼성전자의 시스템 반도체 경쟁력을 강화하고 AI 시대에 기술 독립성을 확보하는 중요한 전환점이 될 것이며, 엑시노스 라인업의 경쟁력 향상에 기여할 것으로 전망됩니다.',
+        'Việc tự phát triển GPU sẽ là điểm chuyển đổi quan trọng giúp tăng cường khả năng cạnh tranh bán dẫn hệ thống của Samsung Electronics và đảm bảo tính độc lập về công nghệ trong kỷ nguyên AI, đồng thời được dự báo sẽ góp phần nâng cao khả năng cạnh tranh của dòng sản phẩm Exynos.',
     },
   },
 ];
 
 const editorialSynthesis = {
-  topic: '주 35시간 근로제 도입 논쟁',
+  topic: 'Tranh luận về việc áp dụng tuần làm việc 35 giờ',
   conflict:
-    '노동자 삶의 질 향상 vs 기업 경쟁력 저하 우려. 양측은 근로시간 단축의 시급성과 방법론에서 첨예하게 대립하고 있다.',
+    'Nâng cao chất lượng cuộc sống người lao động vs Lo ngại giảm khả năng cạnh tranh của doanh nghiệp. Hai bên đang đối đầu gay gắt về tính cấp thiết và phương pháp luận của việc giảm giờ làm.',
   argumentA:
-    '한국의 노동생산성은 OECD 평균 대비 낮은 수준이다. 이 상황에서 근로시간을 일방적으로 단축하면 기업의 경쟁력 약화로 이어질 수 있으며, 결국 고용 감소라는 역효과를 초래할 수 있다. 생산성 향상 없는 근로시간 단축은 기업과 노동자 모두에게 해롭다.',
+    'Năng suất lao động của Hàn Quốc thấp hơn mức trung bình của OECD. Trong tình hình này, việc đơn phương giảm giờ làm có thể dẫn đến suy yếu khả năng cạnh tranh của doanh nghiệp, và cuối cùng gây ra tác dụng ngược là giảm việc làm. Giảm giờ làm mà không tăng năng suất là có hại cho cả doanh nghiệp và người lao động.',
   argumentB:
-    '장시간 노동은 노동자의 건강권을 침해하고 삶의 질을 저하시킨다. 근로시간 단축은 노동자의 기본권 보호 차원에서 필수적이며, 오히려 집중력 향상과 이직률 감소를 통해 장기적으로 생산성 향상에 기여할 수 있다. 선진국들도 이미 이 방향으로 나아가고 있다.',
+    'Làm việc nhiều giờ xâm phạm quyền sức khỏe của người lao động và làm giảm chất lượng cuộc sống. Giảm giờ làm là cần thiết để bảo vệ quyền cơ bản của người lao động, và ngược lại có thể góp phần tăng năng suất trong dài hạn thông qua việc cải thiện sự tập trung và giảm tỷ lệ nghỉ việc. Các nước tiên tiến cũng đã đi theo hướng này.',
   synthesis:
-    '이 논쟁은 단순한 노동시간의 문제가 아니라, 한국 사회가 추구하는 성장 모델과 삶의 가치에 대한 근본적 질문이다. 생산성 향상과 근로자 복지 사이의 균형점을 사회적 합의로 도출해야 하는 과제다.',
+    'Cuộc tranh luận này không chỉ đơn thuần là vấn đề thời gian lao động, mà là câu hỏi căn bản về mô hình tăng trưởng và giá trị cuộc sống mà xã hội Hàn Quốc đang theo đuổi. Đây là bài toán cần đạt được sự đồng thuận xã hội về điểm cân bằng giữa tăng năng suất và phúc lợi người lao động.',
 };
 
 // Helper functions
 function getCategoryName(category) {
   const names = {
-    business: '경제',
-    tech: '기술',
-    policy: '정책',
-    world: '국제',
+    business: 'Kinh tế',
+    tech: 'Công nghệ',
+    policy: 'Chính sách',
+    world: 'Quốc tế',
   };
   return names[category] || category;
 }
@@ -121,27 +121,27 @@ for (const category of categoryOrder) {
 const editorialHtml = `
   <div style="margin-top: 32px; padding: 16px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
     <h2 style="color: #1a1a2e; font-size: 20px; margin-bottom: 16px;">
-      ⚖️ 오늘의 사설 분석
+      ⚖️ Phân tích Xã luận Hôm nay
     </h2>
     <p style="font-size: 16px; font-weight: 600; color: #343a40; margin-bottom: 12px;">
       ${editorialSynthesis.topic}
     </p>
     <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
       <p style="font-size: 14px; color: #495057; margin: 0;">
-        <strong>🔴 핵심 쟁점:</strong> ${editorialSynthesis.conflict}
+        <strong>🔴 Vấn đề Cốt lõi:</strong> ${editorialSynthesis.conflict}
       </p>
     </div>
     <div style="background: #fff5f5; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-      <p style="font-size: 14px; color: #c92a2a; font-weight: 600; margin: 0 0 8px 0;">보수 측 논리</p>
+      <p style="font-size: 14px; color: #c92a2a; font-weight: 600; margin: 0 0 8px 0;">Quan điểm Bảo thủ</p>
       <p style="font-size: 14px; color: #495057; margin: 0; line-height: 1.6;">${editorialSynthesis.argumentA}</p>
     </div>
     <div style="background: #e7f5ff; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-      <p style="font-size: 14px; color: #1971c2; font-weight: 600; margin: 0 0 8px 0;">진보 측 논리</p>
+      <p style="font-size: 14px; color: #1971c2; font-weight: 600; margin: 0 0 8px 0;">Quan điểm Tự do</p>
       <p style="font-size: 14px; color: #495057; margin: 0; line-height: 1.6;">${editorialSynthesis.argumentB}</p>
     </div>
     <div style="background: #f1f3f5; padding: 12px; border-radius: 8px;">
       <p style="font-size: 13px; color: #495057; margin: 0;">
-        <strong>💡 구조적 의미:</strong> ${editorialSynthesis.synthesis}
+        <strong>💡 Ý nghĩa Cấu trúc:</strong> ${editorialSynthesis.synthesis}
       </p>
     </div>
   </div>
@@ -150,13 +150,13 @@ const editorialHtml = `
 // Full HTML
 const html = `
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoCan News - ${date}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f5f5f5;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
   <div style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff;">
 
     <!-- Header -->
@@ -165,13 +165,13 @@ const html = `
         NoCan News
       </h1>
       <p style="color: #9ca3af; font-size: 14px; margin: 0;">
-        세상의 소음은 끄고, 구조적 맥락만 남긴다
+        Tắt tiếng ồn, Bật ngữ cảnh
       </p>
       <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
         ${date}
       </p>
       <a href="${mockArchiveUrl}" style="display: inline-block; margin-top: 12px; padding: 6px 16px; background-color: rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; text-decoration: none; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);">
-        웹에서 보기 →
+        Xem trên web →
       </a>
     </div>
 
@@ -191,7 +191,7 @@ const html = `
     <!-- Footer -->
     <div style="background-color: #f8f9fa; padding: 24px 16px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
-        NoCan News는 AI가 큐레이션하는 뉴스레터입니다.
+        NoCan News là bản tin được AI chọn lọc.
       </p>
       <p style="color: #9ca3af; font-size: 11px; margin: 0 0 16px 0;">
         Powered by Gemini AI • Noise Off, Context On
@@ -199,7 +199,7 @@ const html = `
 
       <!-- Unsubscribe Link -->
       <a href="${mockUnsubscribeUrl}" style="color: #9ca3af; font-size: 11px; text-decoration: underline;">
-        수신거부 (Unsubscribe)
+        Hủy đăng ký (Unsubscribe)
       </a>
     </div>
 
@@ -210,5 +210,5 @@ const html = `
 
 // Save to file
 fs.writeFileSync('email-preview.html', html);
-console.log('✅ email-preview.html 파일이 생성되었습니다.');
-console.log('브라우저에서 열어 확인하세요.');
+console.log('✅ email-preview.html đã được tạo.');
+console.log('Hãy mở file này trong trình duyệt để kiểm tra.');

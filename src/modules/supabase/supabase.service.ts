@@ -227,16 +227,15 @@ export class SupabaseService implements OnModuleInit {
     allKeywords?: string[];
   }): Promise<void> {
     const sendDateStr = data.sendDate
-      .toLocaleDateString('ko-KR', {
-        timeZone: 'Asia/Seoul',
+      .toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       })
-      .replace(/\. /g, '-')
-      .replace('.', '');
+      .replace(/\//g, '-');
 
-    // 명시적으로 JSON 직렬화 후 파싱하여 순수 객체만 저장
+    // Serialize JSON explicitly and parse back to ensure only pure object is saved
     const jsonStr = JSON.stringify(data.contentData);
     const cleanedData = JSON.parse(jsonStr);
 

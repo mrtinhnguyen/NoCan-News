@@ -2,27 +2,27 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
- * 개발 모드 설정 서비스
+ * Service cấu hình chế độ phát triển (Dev Mode)
  *
- * 환경변수:
- * - DEV_MODE: 개발 모드 활성화 (true/false)
- * - DEV_AI_ENABLED: dev mode에서 AI 실행 여부 (true/false)
- * - NEWSLETTER_DRY_RUN: 이메일 발송 스킵 (기존)
+ * Biến môi trường:
+ * - DEV_MODE: Bật chế độ phát triển (true/false)
+ * - DEV_AI_ENABLED: Bật AI trong dev mode (true/false)
+ * - NEWSLETTER_DRY_RUN: Bỏ qua gửi email (cũ)
  */
 @Injectable()
 export class DevModeConfig {
   private readonly logger = new Logger(DevModeConfig.name);
 
-  /** 개발 모드 활성화 여부 */
+  /** Trạng thái kích hoạt Dev Mode */
   readonly isDevMode: boolean;
 
-  /** AI 호출 활성화 여부 (dev mode에서는 기본 비활성화) */
+  /** Trạng thái kích hoạt AI (mặc định tắt trong dev mode) */
   readonly isAiEnabled: boolean;
 
-  /** 이메일 발송 스킵 여부 */
+  /** Trạng thái bỏ qua gửi email */
   readonly skipEmail: boolean;
 
-  /** 상세 로그 출력 여부 */
+  /** Trạng thái log chi tiết */
   readonly verboseLogging: boolean;
 
   constructor(private readonly configService: ConfigService) {
@@ -42,8 +42,8 @@ export class DevModeConfig {
   }
 
   /**
-   * 환경에 맞는 Gemini API 키 반환
-   * DEV_MODE=true일 때 GEMINI_API_KEY_DEV, 아니면 GEMINI_API_KEY
+   * Lấy API Key Gemini phù hợp với môi trường
+   * Nếu DEV_MODE=true thì dùng GEMINI_API_KEY_DEV, ngược lại dùng GEMINI_API_KEY
    */
   getGeminiApiKey(): string | undefined {
     const key = this.isDevMode
@@ -58,7 +58,7 @@ export class DevModeConfig {
   }
 
   /**
-   * dev mode 배너 출력
+   * In banner chế độ Dev
    */
   printBanner(): void {
     if (!this.isDevMode) return;

@@ -1,52 +1,52 @@
 /**
- * Google News RSS URL 상수
+ * Google News RSS URL Constants
  * @see https://news.google.com/rss
  */
 export const GOOGLE_RSS_URLS = {
   // Base Template for Custom Queries
   // Usage: Replace {KEYWORD} with URL-encoded query string
   SEARCH_BASE:
-    'https://news.google.com/rss/search?q={KEYWORD}&hl=ko&gl=KR&ceid=KR:ko',
+    'https://news.google.com/rss/search?q={KEYWORD}&hl=vi&gl=VN&ceid=VN:vi',
 
   // Fixed Topics (Topic IDs)
   // Business (Economy)
   SECTION_BUSINESS:
-    'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko',
+    'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=vi&gl=VN&ceid=VN:vi',
 
   // Science & Technology
   SECTION_TECH:
-    'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko',
+    'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=vi&gl=VN&ceid=VN:vi',
 
   // World (Global)
   SECTION_WORLD:
-    'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko',
+    'https://news.google.com/rss/headlines/section/topic/WORLD?hl=vi&gl=VN&ceid=VN:vi',
 
-  // Korea (Nation/대한민국)
-  SECTION_KOREA:
-    'https://news.google.com/rss/topics/CAAqIQgKIhtDQkFTRGdvSUwyMHZNRFp4WkRNU0FtdHZLQUFQAQ?hl=ko&gl=KR&ceid=KR:ko',
+  // Vietnam (Nation/Việt Nam)
+  SECTION_VIETNAM:
+    'https://news.google.com/rss/headlines/section/topic/NATION?hl=vi&gl=VN&ceid=VN:vi',
 };
 
 /**
- * Custom Query 키워드 (URL 인코딩됨)
+ * Custom Query Keywords (URL encoded)
  */
 export const CUSTOM_QUERIES = {
-  // 사설 - 보수 (조선일보, 중앙일보, 동아일보)
+  // Xã luận - Nhóm 1 (VnExpress, Dân Trí)
   EDITORIAL_CONSERVATIVE: encodeURIComponent(
-    'site:chosun.com OR site:joongang.co.kr OR site:donga.com 사설 when:2d',
+    'site:vnexpress.net OR site:dantri.com.vn "Góc nhìn" when:2d',
   ),
 
-  // 사설 - 진보 (한겨레, 경향신문, 오마이뉴스)
+  // Xã luận - Nhóm 2 (Tuổi Trẻ, Thanh Niên)
   EDITORIAL_LIBERAL: encodeURIComponent(
-    'site:hani.co.kr OR site:khan.co.kr OR site:ohmynews.com 사설 when:2d',
+    'site:tuoitre.vn OR site:thanhnien.vn "Tiêu điểm" OR "Thời sự" when:2d',
   ),
 };
 
 /**
- * 뉴스 카테고리
+ * News Categories
  */
 export type NewsCategory = 'business' | 'tech' | 'society' | 'world';
 
 /**
- * 사설 정치 성향
+ * Editorial Stance
  */
 export type EditorialStance = 'conservative' | 'liberal';

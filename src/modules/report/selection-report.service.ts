@@ -20,14 +20,14 @@ export class SelectionReportService {
   private readonly logger = new Logger(SelectionReportService.name);
 
   private readonly categoryLabels: Record<NewsCategory, string> = {
-    business: '비즈니스/경제',
-    tech: '기술/과학',
-    society: '사회',
-    world: '국제/세계',
+    business: 'Kinh doanh/Kinh tế',
+    tech: 'Công nghệ/Khoa học',
+    society: 'Xã hội',
+    world: 'Quốc tế/Thế giới',
   };
 
   /**
-   * AI 선별 결과 HTML 리포트 생성
+   * Tạo báo cáo HTML kết quả chọn lọc AI
    */
   generateReport(
     categorizedNews: CategorizedNews,
@@ -60,7 +60,7 @@ export class SelectionReportService {
       },
     ];
 
-    // 통계 계산
+    // Tính toán thống kê
     const totalCollected = categories.reduce(
       (sum, cat) => sum + cat.items.length,
       0,
@@ -79,8 +79,8 @@ export class SelectionReportService {
     );
 
     const now = new Date();
-    const dateStr = now.toLocaleDateString('ko-KR', {
-      timeZone: 'Asia/Seoul',
+    const dateStr = now.toLocaleDateString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -89,11 +89,11 @@ export class SelectionReportService {
     });
 
     return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 뉴스 선별 리포트 - ${dateStr}</title>
+  <title>Báo cáo Chọn lọc Tin tức AI - ${dateStr}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -283,26 +283,26 @@ export class SelectionReportService {
 <body>
   <div class="container">
     <div class="header">
-      <h1>AI 뉴스 선별 품질 분석 리포트</h1>
-      <div class="date">${dateStr} 생성</div>
+      <h1>Báo cáo Phân tích Chất lượng Chọn lọc Tin tức AI</h1>
+      <div class="date">Được tạo: ${dateStr}</div>
     </div>
 
     <div class="stats">
       <div class="stat-card">
         <div class="number">${totalCollected}</div>
-        <div class="label">총 수집</div>
+        <div class="label">Tổng thu thập</div>
       </div>
       <div class="stat-card selected">
         <div class="number">${totalSelected}</div>
-        <div class="label">선별됨</div>
+        <div class="label">Đã chọn</div>
       </div>
       <div class="stat-card blocked">
         <div class="number">${totalBlocked}</div>
-        <div class="label">차단됨</div>
+        <div class="label">Đã chặn</div>
       </div>
       <div class="stat-card">
         <div class="number">${((totalSelected / totalCollected) * 100).toFixed(1)}%</div>
-        <div class="label">선별률</div>
+        <div class="label">Tỷ lệ chọn</div>
       </div>
     </div>
 
@@ -318,7 +318,7 @@ export class SelectionReportService {
         toggle.textContent = content.classList.contains('open') ? '−' : '+';
       });
     });
-    // 첫 번째 카테고리 자동 열기
+    // Tự động mở danh mục đầu tiên
     document.querySelector('.category-content')?.classList.add('open');
     document.querySelector('.toggle').textContent = '−';
   </script>
@@ -327,10 +327,10 @@ export class SelectionReportService {
   }
 
   /**
-   * 카테고리 섹션 렌더링
+   * Render section danh mục
    */
   private renderCategorySection(data: CategorySelectionData): string {
-    const { category, categoryLabel, items, selectionResult } = data;
+    const { categoryLabel, items, selectionResult } = data;
     const selectedIndices = new Set(selectionResult.selectedIndices);
     const { blocked } = selectionResult.filterStats;
 
@@ -339,7 +339,7 @@ export class SelectionReportService {
       <div class="category-header">
         <h2>${categoryLabel}</h2>
         <div>
-          <span class="badge">${items.length}건 수집 / ${selectedIndices.size}건 선별</span>
+          <span class="badge">${items.length} tin thu thập / ${selectedIndices.size} tin đã chọn</span>
           <span class="toggle">+</span>
         </div>
       </div>
@@ -347,23 +347,23 @@ export class SelectionReportService {
         <div class="filter-stats">
           <div class="filter-stat">
             <span class="dot crime"></span>
-            <span>범죄: ${blocked.crime}건</span>
+            <span>Tội phạm: ${blocked.crime} tin</span>
           </div>
           <div class="filter-stat">
             <span class="dot gossip"></span>
-            <span>가십: ${blocked.gossip}건</span>
+            <span>Chuyện phiếm: ${blocked.gossip} tin</span>
           </div>
           <div class="filter-stat">
             <span class="dot political"></span>
-            <span>정치비방: ${blocked.politicalStrife}건</span>
+            <span>Tranh cãi chính trị: ${blocked.politicalStrife} tin</span>
           </div>
         </div>
         <table class="news-table">
           <thead>
             <tr>
-              <th>번호</th>
-              <th>제목 / 요약</th>
-              <th>링크</th>
+              <th>STT</th>
+              <th>Tiêu đề / Tóm tắt</th>
+              <th>Liên kết</th>
             </tr>
           </thead>
           <tbody>
@@ -373,7 +373,7 @@ export class SelectionReportService {
         <div class="legend">
           <div class="legend-item">
             <span class="box"></span>
-            <span>AI 선별된 기사</span>
+            <span>Tin tức được AI chọn</span>
           </div>
         </div>
       </div>
@@ -381,7 +381,7 @@ export class SelectionReportService {
   }
 
   /**
-   * 뉴스 행 렌더링
+   * Render hàng tin tức
    */
   private renderNewsRow(
     item: NewsItem,
@@ -397,7 +397,7 @@ export class SelectionReportService {
               <td class="title-cell">
                 <span class="title">
                   ${escapedTitle}
-                  ${isSelected ? '<span class="selected-badge">선별됨</span>' : ''}
+                  ${isSelected ? '<span class="selected-badge">Đã chọn</span>' : ''}
                 </span>
                 <span class="snippet">${escapedSnippet}</span>
               </td>
@@ -408,7 +408,7 @@ export class SelectionReportService {
   }
 
   /**
-   * HTML 이스케이프
+   * Escape HTML
    */
   private escapeHtml(text: string): string {
     return text
@@ -420,7 +420,7 @@ export class SelectionReportService {
   }
 
   /**
-   * URL 축약
+   * Rút gọn URL
    */
   private truncateUrl(url: string): string {
     if (url.length <= 50) return url;
@@ -428,42 +428,34 @@ export class SelectionReportService {
   }
 
   /**
-   * 리포트 파일 저장
-   * @returns 저장된 파일 경로
+   * Lưu file báo cáo
+   * @returns Đường dẫn file đã lưu
    */
   saveReport(html: string, filename?: string): string {
     const reportsDir = path.join(process.cwd(), 'reports');
 
-    // reports 디렉토리 생성
+    // Tạo thư mục reports
     if (!fs.existsSync(reportsDir)) {
       fs.mkdirSync(reportsDir, { recursive: true });
     }
 
-    // 파일명 생성
+    // Tạo tên file
     const now = new Date();
-    const dateStr = now
-      .toLocaleDateString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\. /g, '-')
-      .replace('.', '');
-    const timeStr = now
-      .toLocaleTimeString('ko-KR', {
-        timeZone: 'Asia/Seoul',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-      .replace(':', '');
+    // Sử dụng format YYYY-MM-DD an toàn cho tên file, tránh phụ thuộc locale
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}${minutes}`;
 
     const finalFilename =
       filename || `selection-report-${dateStr}-${timeStr}.html`;
     const filePath = path.join(reportsDir, finalFilename);
 
-    // 파일 저장
+    // Lưu file
     fs.writeFileSync(filePath, html, 'utf-8');
     this.logger.log(`Selection report saved: ${filePath}`);
 

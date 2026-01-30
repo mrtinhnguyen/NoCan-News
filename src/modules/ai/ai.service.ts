@@ -31,15 +31,15 @@ export class AiService {
   }
 
   /**
-   * 1단계: 카테고리별 뉴스 선별 + 독성 필터링
-   * 각 카테고리에서 가장 중요한 3개 뉴스 선택
+   * Bước 1: Chọn lọc tin tức theo danh mục + Lọc độc hại
+   * Chọn 3 tin tức quan trọng nhất từ mỗi danh mục
    */
   async selectNewsForCategory(
     newsItems: NewsItem[],
     category: NewsCategory,
   ): Promise<SelectionResult> {
     this.logger.log(
-      `Selecting news for ${category} (${newsItems.length} items)...`,
+      `Đang chọn lọc tin tức cho ${category} (${newsItems.length} tin)...`,
     );
 
     if (newsItems.length === 0) {
@@ -52,7 +52,7 @@ export class AiService {
       };
     }
 
-    // DEV MODE: AI 스킵 - 처음 3개 자동 선택
+    // DEV MODE: Bỏ qua AI - Tự động chọn 3 tin đầu tiên
     if (!this.devModeConfig.isAiEnabled) {
       const selectedCount = Math.min(3, newsItems.length);
       const selectedIndices = Array.from(
@@ -60,9 +60,9 @@ export class AiService {
         (_, i) => i,
       );
 
-      this.logger.log(`[DEV] Skipping AI selection for ${category}`);
+      this.logger.log(`[DEV] Bỏ qua AI chọn lọc cho ${category}`);
       this.logger.log(
-        `[DEV] Auto-selecting first ${selectedCount} items: [${selectedIndices.join(', ')}]`,
+        `[DEV] Tự động chọn ${selectedCount} tin đầu tiên: [${selectedIndices.join(', ')}]`,
       );
 
       if (this.devModeConfig.verboseLogging) {
@@ -81,95 +81,95 @@ export class AiService {
     }
 
     const categoryNames: Record<NewsCategory, string> = {
-      business: '비즈니스/경제',
-      tech: '기술/과학',
-      society: '사회',
-      world: '국제/세계',
+      business: 'Kinh doanh/Kinh tế',
+      tech: 'Công nghệ/Khoa học',
+      society: 'Xã hội',
+      world: 'Quốc tế/Thế giới',
     };
 
-    // 상위 20개만 AI에게 전달 (구글 뉴스 RSS는 이미 중요도순 정렬)
+    // Chỉ gửi 20 tin đầu cho AI (RSS Google News đã sắp xếp theo độ quan trọng)
     const limitedItems = newsItems.slice(0, 20);
 
     const newsListText = limitedItems
       .map(
         (item, idx) =>
-          `[${idx}] 제목: ${item.title}\n    요약: ${item.snippet || '없음'}`,
+          `[${idx}] Tiêu đề: ${item.title}\n    Tóm tắt: ${item.snippet || 'Không có'}`,
       )
       .join('\n\n');
 
-    const prompt = `당신은 **'거시적 맥락(Macro Context)'**을 읽어내는 뉴스 큐레이터입니다.
-아래 목록은 **${categoryNames[category]}** 카테고리의 뉴스이며, 중요도 순으로 정렬되어 있습니다.
+    const prompt = `Bạn là một người tuyển chọn tin tức, chuyên đọc ra **'Bối cảnh Vĩ mô (Macro Context)'**.
+Danh sách dưới đây là các tin tức thuộc danh mục **${categoryNames[category]}**, được sắp xếp theo mức độ quan trọng.
 
-## 핵심 목표
-단순히 "나쁜 뉴스를 거르는 것"이 아닙니다.
-**"우리 삶의 규칙(Rule)이나 환경(Environment)을 바꾸는 구조적 뉴스"**를 찾아내는 것이 목표입니다.
+## Mục tiêu Cốt lõi
+Không chỉ đơn thuần là "lọc bỏ tin xấu".
+Mục tiêu là tìm ra **"những tin tức mang tính cấu trúc thay đổi Quy tắc (Rule) hoặc Môi trường (Environment) sống của chúng ta"**.
 
-## 작업 지시
-목록의 **상단(0번)**부터 순서대로 검토하되, 아래 조건을 **모두 만족하는** 뉴스만 최대 3개 선택하세요.
-1. [절대 탈락 기준]에 해당하지 않을 것
-2. [필수 선택 기준] 중 하나 이상을 충족할 것
+## Chỉ dẫn Công việc
+Xem xét từ **đầu danh sách (số 0)** trở xuống, chỉ chọn tối đa 3 tin tức thỏa mãn **TẤT CẢ** các điều kiện sau:
+1. Không vi phạm [Tiêu chí Loại bỏ Tuyệt đối]
+2. Thỏa mãn ít nhất một trong các [Tiêu chí Lựa chọn Bắt buộc]
 
-**중요:** 탈락 기준을 피했더라도 [필수 선택 기준]을 충족하지 못하면 **선택하지 마세요.**
-상단 뉴스가 가치 없다면 과감히 건너뛰세요.
+**Quan trọng:** Nếu tin tức không vi phạm tiêu chí loại bỏ nhưng không thỏa mãn [Tiêu chí Lựa chọn Bắt buộc], hãy **KHÔNG CHỌN.**
+Nếu tin tức ở đầu danh sách không có giá trị, hãy mạnh dạn bỏ qua.
 
 ---
 
-## 1. 절대 탈락 기준 (즉시 제외)
+## 1. Tiêu chí Loại bỏ Tuyệt đối (Loại ngay lập tức)
 
-A. **노이즈 (Noise):**
-  - **단순 사건/사고:** 화재, 교통사고, 살인, 침수 등 (구조적 원인 분석 없이 현상만 전달)
-  - **정치 공방/수사:** 압수수색, 구속, 공방, 비난, 검찰 소환 등 정치인 개인의 사법 리스크나 설전
-  - **단순 시황/날씨:** 오늘의 날씨, 특이사항 없는 주가/환율 등락
-  - **가십/연예:** 연예인 사생활, 스포츠 경기 결과
-  - *(단, 전쟁, 국가 지도자 체포/망명, 테러 등 **국제 정세에 영향을 주는 구조적 사건**은 예외)*
+A. **Nhiễu (Noise):**
+  - **Sự vụ đơn thuần:** Hỏa hoạn, tai nạn giao thông, giết người, ngập lụt, v.v. (chỉ phản ánh hiện tượng mà không phân tích nguyên nhân cấu trúc)
+  - **Tranh cãi chính trị/Điều tra:** Khám xét, bắt giam, tranh cãi, chỉ trích, triệu tập kiểm sát, v.v. (rủi ro pháp lý cá nhân của chính trị gia hoặc khẩu chiến)
+  - **Thị trường/Thời tiết đơn thuần:** Thời tiết hôm nay, biến động tỷ giá/chứng khoán không có gì đặc biệt
+  - **Chuyện phiếm/Giải trí:** Đời tư nghệ sĩ, kết quả thi đấu thể thao
+  - *(Tuy nhiên, Chiến tranh, Lãnh đạo quốc gia bị bắt/lưu vong, Khủng bố v.v. là **các sự kiện cấu trúc ảnh hưởng đến tình hình quốc tế** thì là ngoại lệ)*
 
-B. **영양가 없는 정보 (Low Value):**
-  - **단순 홍보(PR):** MOU 체결, 비전 선포, 참가 모집, 수상, 인사(발령) 등 실질적 변화 없는 보도자료
-  - **단순 발언/인터뷰:** "~라고 말했다", "~라고 주장", "~라고 밝혔다" 등 **구체적 정책 결정이나 수치 변화 없이** 누군가의 의견만 전달하는 기사
-  - **재테크/투자 팁:** "~가 뜬다", "고수의 선택", "지금 사라" 등 종목 추천성 기사
-  - **지엽적 소식:** 특정 지역의 작은 행사, 지자체 단순 행정 알림
-  - **일반론/칼럼:** 구체적 사건 없이 현상만 분석한 글
+B. **Thông tin ít giá trị (Low Value):**
+  - **Quảng cáo đơn thuần (PR):** Ký kết MOU, công bố tầm nhìn, tuyển dụng, giải thưởng, nhân sự (bổ nhiệm) v.v. không có thay đổi thực chất
+  - **Phát ngôn/Phỏng vấn đơn thuần:** "Đã nói rằng...", "Đã khẳng định...", "Đã cho biết..." v.v. chỉ truyền tải ý kiến ai đó mà **không có quyết định chính sách cụ thể hay thay đổi số liệu**
+  - **Mẹo đầu tư/Tài chính:** "Cổ phiếu nào đang lên", "Lựa chọn của cao thủ", "Mua ngay kẻo lỡ" v.v. các bài viết khuyến nghị đầu tư
+  - **Tin tức cục bộ:** Sự kiện nhỏ ở địa phương, thông báo hành chính đơn thuần
+  - **Bài viết chung chung/Góc nhìn:** Bài phân tích hiện tượng mà không gắn với sự kiện cụ thể
 
-C. **카테고리 불일치:**
-  - **현재 카테고리(${categoryNames[category]})와 맞지 않는 뉴스**는 제외하세요.
+C. **Sai danh mục:**
+  - Loại bỏ các tin tức **không phù hợp với danh mục hiện tại (${categoryNames[category]})**.
 ${
   category === 'society'
     ? `
-D. **사회 카테고리 특별 기준:**
-  - '사회'는 사건사고가 아니라 **"시스템의 문제"**를 다뤄야 합니다
-  - 단순 범죄 보도, 재판 결과, 날씨 예보, 선거 유세, 스포츠/연예는 모두 제외
+D. **Tiêu chí đặc biệt cho danh mục Xã hội:**
+  - 'Xã hội' không phải là các vụ án, tai nạn mà phải đề cập đến **"Vấn đề của Hệ thống"**
+  - Loại bỏ hoàn toàn các tin báo cáo tội phạm đơn thuần, kết quả xét xử, dự báo thời tiết, vận động tranh cử, thể thao/giải trí
 `
     : ''
 }
 ---
 
-## 2. 필수 선택 기준 (반드시 하나 이상 충족)
+## 2. Tiêu chí Lựa chọn Bắt buộc (Phải thỏa mãn ít nhất một)
 
-탈락 기준을 피했더라도, **아래 가치 중 하나 이상을 포함해야만 선택**하세요.
+Ngay cả khi đã tránh được tiêu chí loại bỏ, **chỉ chọn nếu tin tức chứa ít nhất một trong các giá trị sau**:
 
-- **시스템의 변화:** 법안 통과, 제도 변경, 정책 확정/동결 (예: "국민연금 개혁안 확정", "기준금리 N연속 동결")
-- **임계점 돌파:** **"역대 최고/최저", "사상 처음", "N년 만에", "N연속"** 등 구조적 변화를 암시하는 지표 (예: "삼성전자 빚투 역대 최고", "출산율 0.6명대 붕괴")
-- **산업/기술 판도 변화:** 시장 지배구조를 바꾸는 M&A, 혁신 기술의 상용화, 대규모 투자(조 단위)
-- **국제 질서 변동:** 전쟁의 발발/종식, 국경 변화, 패권 경쟁의 구체적 조치, 국가 간 조약
+- **Thay đổi Hệ thống:** Thông qua luật, thay đổi chế độ, xác định/đóng băng chính sách (VD: "Chốt phương án cải cách bảo hiểm xã hội", "Lãi suất cơ bản giữ nguyên N lần liên tiếp")
+- **Vượt ngưỡng (Breaking Point):** Các chỉ số ám chỉ thay đổi cấu trúc như **"Cao/Thấp nhất lịch sử", "Lần đầu tiên trong lịch sử", "Sau N năm", "N lần liên tiếp"** (VD: "Nợ vay ký quỹ Samsung Electronics cao kỷ lục", "Tỷ sinh tụt xuống mức 0.6")
+- **Thay đổi Cục diện Ngành/Công nghệ:** M&A thay đổi cấu trúc thị trường, thương mại hóa công nghệ đột phá, đầu tư quy mô lớn (nghìn tỷ)
+- **Biến động Trật tự Quốc tế:** Chiến tranh bùng nổ/kết thúc, thay đổi biên giới, hành động cụ thể trong cạnh tranh bá quyền, hiệp ước giữa các quốc gia
 
-**자문:** "이 뉴스가 1년 후에도 중요할까?" → 아니라면 버리세요.
+**Tự vấn:** "Tin tức này có còn quan trọng sau 1 năm nữa không?" → Nếu không, hãy loại bỏ.
 
 ---
 
-## 뉴스 목록
+## Danh sách Tin tức
 ${newsListText}
 
-## 출력 형식 (JSON만 출력)
+## Định dạng Đầu ra (Chỉ xuất JSON)
 {
   "filterStats": {
     "scanned": ${limitedItems.length},
     "blocked": {
-      "crime": [범죄/사고 차단 수],
-      "gossip": [가십/홍보/비뉴스 차단 수],
-      "politicalStrife": [정치 공방 차단 수]
+      "crime": [Số lượng tin tội phạm/tai nạn bị chặn],
+      "gossip": [Số lượng tin chuyện phiếm/PR/phi tin tức bị chặn],
+      "politicalStrife": [Số lượng tin tranh cãi chính trị bị chặn]
     }
   },
-  "selectedIndices": [선택된 뉴스 인덱스 (최대 3개, 필수 기준 충족한 것만)]
+  "selectedIndices": [Danh sách index của tin được chọn (tối đa 3, chỉ những tin thỏa mãn tiêu chí bắt buộc)]
 }`;
 
     try {
@@ -207,8 +207,8 @@ ${newsListText}
   }
 
   /**
-   * 2단계: 헤드라인 중화 + 인사이트 생성
-   * 선별된 뉴스에 대해 한 번에 처리
+   * Bước 2: Trung hòa tiêu đề + Tạo Insight
+   * Xử lý một lần cho tất cả tin tức đã chọn
    */
   async generateInsights(scrapedNews: ScrapedNews[]): Promise<InsightResult[]> {
     this.logger.log(`Generating insights for ${scrapedNews.length} news...`);
@@ -217,7 +217,7 @@ ${newsListText}
       return [];
     }
 
-    // DEV MODE: AI 스킵 - 원본 제목 + 플레이스홀더 인사이트
+    // DEV MODE: Bỏ qua AI - Tiêu đề gốc + Insight giả lập
     if (!this.devModeConfig.isAiEnabled) {
       this.logger.log('[DEV] Skipping AI insights generation');
       this.logger.log('[DEV] Using original titles with placeholder insights');
@@ -232,10 +232,10 @@ ${newsListText}
           index: idx,
           detoxedTitle: `[DEV] ${news.title}`,
           insight: {
-            fact: `[DEV MODE] 본문 미리보기: ${news.content.slice(0, 150)}...`,
+            fact: `[DEV MODE] Xem trước nội dung: ${news.content.slice(0, 150)}...`,
             context:
-              '[DEV MODE] AI 분석이 비활성화되어 있습니다. DEV_AI_ENABLED=true로 설정하세요.',
-            implication: '[DEV MODE] 실제 인사이트를 보려면 AI를 활성화하세요.',
+              '[DEV MODE] AI phân tích đang bị tắt. Hãy đặt DEV_AI_ENABLED=true để bật.',
+            implication: '[DEV MODE] Hãy bật AI để xem insight thực tế.',
           },
         };
       });
@@ -244,41 +244,41 @@ ${newsListText}
     const newsListText = scrapedNews
       .map(
         (item: ScrapedNews, idx: number) =>
-          `[${idx}] 카테고리: ${item.category}
-제목: ${item.title}
-본문:
-${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}`,
+          `[${idx}] Danh mục: ${item.category}
+Tiêu đề: ${item.title}
+Nội dung:
+${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(lược bỏ)' : ''}`,
       )
       .join('\n\n---\n\n');
 
-    const prompt = `당신은 "NoCan News"의 AI 편집자입니다. 불안을 유발하는 자극적 뉴스를 차분하고 건조한 팩트로 변환합니다.
+    const prompt = `Bạn là biên tập viên AI của "NoCan News". Bạn chuyển đổi những tin tức giật gân, gây lo lắng thành những sự thật khô khan và bình tĩnh.
 
-                    ## 작업 원칙
-                    아래 ${scrapedNews.length}개의 뉴스에 대해 JSON 데이터를 생성하세요.
+                    ## Nguyên tắc làm việc
+                    Tạo dữ liệu JSON cho ${scrapedNews.length} tin tức dưới đây.
 
-                    1. **제목 중화 (detoxedTitle)**: 
-                      - 감정적 형용사, 충격적인 묘사, 클릭베이트를 제거하세요.
-                      - **중요:** 전쟁, 체포, 사고 등 격한 소재일수록 **더욱 건조하고 사무적인 톤**을 유지하세요. (예: "카라카스 불바다" -> "대규모 시위 및 무력 충돌 발생")
+                    1. **Trung hòa Tiêu đề (detoxedTitle)**: 
+                      - Loại bỏ tính từ cảm xúc, mô tả gây sốc, clickbait.
+                      - **Quan trọng:** Với các chủ đề như chiến tranh, bắt giữ, tai nạn, càng phải giữ giọng văn **khô khan và hành chính**. (VD: "Caracas chìm trong biển lửa" -> "Biểu tình quy mô lớn và xung đột vũ trang xảy ra")
 
-                    2. **3줄 인사이트 생성**:
-                      - fact: 무엇이 일어났는가? (육하원칙에 입각한 건조한 서술)
-                      - context: 왜 일어났는가? (역사적 배경, 인과관계, 지정학적 이유)
-                      - implication: 무엇을 의미하는가? (시장 영향, 국제 정세 변화, 향후 전망)
-                      - **주의:** 전쟁/갈등 뉴스의 경우, '비명', '혈흔' 같은 현장 묘사 대신 **'석유 가격', '외교 관계', '정권 안정성' 같은 구조적 맥락**을 추출하세요.
+                    2. **Tạo Insight 3 dòng**:
+                      - fact: Chuyện gì đã xảy ra? (Mô tả khô khan dựa trên 5W1H)
+                      - context: Tại sao nó xảy ra? (Bối cảnh lịch sử, quan hệ nhân quả, lý do địa chính trị)
+                      - implication: Nó có ý nghĩa gì? (Tác động thị trường, thay đổi tình hình quốc tế, triển vọng tương lai)
+                      - **Lưu ý:** Với tin chiến tranh/xung đột, thay vì mô tả hiện trường như 'tiếng la hét', 'vết máu', hãy trích xuất **bối cảnh cấu trúc như 'giá dầu', 'quan hệ ngoại giao', 'ổn định chính quyền'**.
 
-                    ## 뉴스 목록
+                    ## Danh sách Tin tức
                     ${newsListText}
 
-                    ## 출력 형식 (JSON 배열만 출력)
-                    **중요:** 반드시 입력된 뉴스의 인덱스 번호([0], [1], [2]...)를 "index" 필드에 포함하세요.
+                    ## Định dạng Đầu ra (Chỉ xuất mảng JSON)
+                    **Quan trọng:** Bắt buộc phải bao gồm số thứ tự tin tức ([0], [1], [2]...) vào trường "index".
                     [
                       {
                         "index": 0,
-                        "detoxedTitle": "건조하게 중화된 제목",
+                        "detoxedTitle": "Tiêu đề đã được trung hòa",
                         "insight": {
-                          "fact": "객관적 사실 요약 (1-2문장)",
-                          "context": "구조적 원인/배경 (1-2문장)",
-                          "implication": "시사점/전망 (1-2문장)"
+                          "fact": "Tóm tắt sự thật khách quan (1-2 câu)",
+                          "context": "Nguyên nhân/Bối cảnh cấu trúc (1-2 câu)",
+                          "implication": "Ý nghĩa/Triển vọng (1-2 câu)"
                         }
                       }
                     ]`;
@@ -313,9 +313,9 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
         index: idx,
         detoxedTitle: news.title,
         insight: {
-          fact: '[AI 분석 실패] 원문 확인 필요',
-          context: '[AI 분석 실패] 원문 확인 필요',
-          implication: '[AI 분석 실패] 원문 확인 필요',
+          fact: '[AI Phân tích thất bại] Cần kiểm tra tin gốc',
+          context: '[AI Phân tích thất bại] Cần kiểm tra tin gốc',
+          implication: '[AI Phân tích thất bại] Cần kiểm tra tin gốc',
         },
         isFallback: true,
       }));
@@ -323,8 +323,8 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
   }
 
   /**
-   * 보수/진보 사설 중 같은 주제 쌍 매칭
-   * @returns 매칭된 인덱스 쌍 또는 null (매칭 실패 시)
+   * Khớp cặp bài xã luận cùng chủ đề giữa Quan điểm Bảo thủ và Tự do
+   * @returns Cặp index đã khớp hoặc null (nếu thất bại)
    */
   async matchEditorials(
     conservative: Editorial[],
@@ -335,45 +335,45 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
     topic: string;
   } | null> {
     this.logger.log(
-      `Matching editorials: ${conservative.length} conservative, ${liberal.length} liberal`,
+      `Đang khớp xã luận: ${conservative.length} bảo thủ, ${liberal.length} tự do`,
     );
 
     if (conservative.length === 0 || liberal.length === 0) {
-      this.logger.warn('No editorials to match');
+      this.logger.warn('Không có xã luận để khớp');
       return null;
     }
 
-    // DEV MODE: AI 스킵 - 첫 번째 사설끼리 mock 매칭
+    // DEV MODE: Bỏ qua AI - Mock khớp cặp đầu tiên
     if (!this.devModeConfig.isAiEnabled) {
-      this.logger.log('[DEV] Using mock editorial matching (first pair)');
+      this.logger.log('[DEV] Sử dụng mock khớp xã luận (cặp đầu tiên)');
 
       if (this.devModeConfig.verboseLogging) {
-        this.logger.log('[DEV] Conservative editorials:');
+        this.logger.log('[DEV] Xã luận Bảo thủ:');
         conservative.slice(0, 3).forEach((e, i) => {
           this.logger.log(`  [${i}] ${e.title}`);
           this.logger.log(`      Link: ${e.link}`);
         });
         if (conservative.length > 3) {
-          this.logger.log(`  ... and ${conservative.length - 3} more`);
+          this.logger.log(`  ... và ${conservative.length - 3} bài khác`);
         }
-        this.logger.log('[DEV] Liberal editorials:');
+        this.logger.log('[DEV] Xã luận Tự do:');
         liberal.slice(0, 3).forEach((e, i) => {
           this.logger.log(`  [${i}] ${e.title}`);
           this.logger.log(`      Link: ${e.link}`);
         });
         if (liberal.length > 3) {
-          this.logger.log(`  ... and ${liberal.length - 3} more`);
+          this.logger.log(`  ... và ${liberal.length - 3} bài khác`);
         }
       }
 
-      // Mock 매칭: 첫 번째 사설끼리 매칭 (스크래핑 테스트용)
+      // Mock khớp: Khớp cặp đầu tiên (để test cào dữ liệu)
       const mockMatch = {
         conservativeIdx: 0,
         liberalIdx: 0,
-        topic: '[DEV] Mock 매칭 - 사설 스크래핑 테스트',
+        topic: '[DEV] Mock khớp - Test cào xã luận',
       };
       this.logger.log(
-        `[DEV] Mock matched: "${conservative[0].title}" vs "${liberal[0].title}"`,
+        `[DEV] Đã khớp giả lập: "${conservative[0].title}" vs "${liberal[0].title}"`,
       );
       return mockMatch;
     }
@@ -386,28 +386,28 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(생략)' : ''}
       .map((e, idx) => `[${idx}] ${e.title}`)
       .join('\n');
 
-    const prompt = `당신은 뉴스 분석가입니다. 아래 보수 성향 사설과 진보 성향 사설 목록에서 **같은 주제**를 다루는 쌍을 찾아주세요.
+    const prompt = `Bạn là một nhà phân tích tin tức. Hãy tìm các cặp bài xã luận cùng chủ đề từ danh sách xã luận Quan điểm Bảo thủ và Quan điểm Tự do dưới đây.
 
-## 보수 성향 사설 (조선일보, 중앙일보)
+## Xã luận Quan điểm Bảo thủ (Chosun, JoongAng)
 ${conservativeList}
 
-## 진보 성향 사설 (한겨레, 경향신문)
+## Xã luận Quan điểm Tự do (Hankyoreh, Kyunghyang)
 ${liberalList}
 
-## 작업
-1. 양측에서 동일한 이슈/주제를 다루는 사설 쌍이 있는지 확인하세요.
-2. 같은 주제를 다루는 쌍이 있다면 인덱스와 주제를 반환하세요.
-3. 같은 주제가 없다면 null을 반환하세요.
+## Nhiệm vụ
+1. Kiểm tra xem có cặp bài nào từ hai phía thảo luận cùng một vấn đề/chủ đề không.
+2. Nếu có, hãy trả về index và chủ đề chung.
+3. Nếu không có chủ đề chung, trả về null.
 
-## 출력 형식 (JSON만 출력)
-매칭 성공 시:
+## Định dạng Đầu ra (Chỉ xuất JSON)
+Nếu tìm thấy cặp bài:
 {
   "conservativeIdx": 0,
   "liberalIdx": 1,
-  "topic": "공통 주제 (예: 의대 증원 정책)"
+  "topic": "Chủ đề chung (VD: Chính sách tăng chỉ tiêu tuyển sinh y khoa)"
 }
 
-매칭 실패 시:
+Nếu không tìm thấy:
 null`;
 
     try {
@@ -422,9 +422,9 @@ null`;
       });
       const responseText = result.response.text().trim();
 
-      // null 응답 체크
+      // Kiểm tra phản hồi null
       if (responseText === 'null' || responseText.toLowerCase() === 'null') {
-        this.logger.log('No matching editorial pair found');
+        this.logger.log('Không tìm thấy cặp xã luận phù hợp');
         return null;
       }
 
@@ -440,7 +440,7 @@ null`;
         topic: string;
       };
 
-      // 인덱스 유효성 검사
+      // Kiểm tra tính hợp lệ của index
       if (
         parsed.conservativeIdx < 0 ||
         parsed.conservativeIdx >= conservative.length ||
@@ -460,7 +460,7 @@ null`;
   }
 
   /**
-   * 사설 통합 분석 (정반합)
+   * Tổng hợp phân tích xã luận (Chính - Phản - Hợp)
    */
   async synthesizeEditorials(
     conservativeText: string,
@@ -469,7 +469,7 @@ null`;
   ): Promise<EditorialSynthesis | null> {
     this.logger.log(`Synthesizing editorials on topic: ${topic}`);
 
-    // DEV MODE: AI 스킵 - mock 통합 분석 반환
+    // DEV MODE: AI Skip - Trả về mock tổng hợp
     if (!this.devModeConfig.isAiEnabled) {
       this.logger.log('[DEV] Using mock editorial synthesis');
 
@@ -485,34 +485,34 @@ null`;
       return {
         topic: `[DEV] ${topic}`,
         conflict:
-          '[DEV MODE] AI 분석이 비활성화되어 있습니다. 실제 쟁점 분석을 보려면 DEV_AI_ENABLED=true로 설정하세요.',
-        argumentA: `[DEV] 보수 사설 본문 길이: ${conservativeText.length}자`,
-        argumentB: `[DEV] 진보 사설 본문 길이: ${liberalText.length}자`,
+          '[DEV MODE] AI phân tích đang tắt. Để xem phân tích thực tế, hãy đặt DEV_AI_ENABLED=true.',
+        argumentA: `[DEV] Độ dài xã luận Bảo thủ: ${conservativeText.length} ký tự`,
+        argumentB: `[DEV] Độ dài xã luận Tự do: ${liberalText.length} ký tự`,
         synthesis:
-          '[DEV MODE] 사설 스크래핑 성공 여부를 확인하기 위한 테스트 모드입니다.',
+          '[DEV MODE] Chế độ kiểm tra để xác nhận việc thu thập dữ liệu xã luận thành công.',
       };
     }
 
-    const prompt = `당신은 중립적인 정치 분석가입니다. 같은 주제에 대한 보수와 진보 사설을 분석합니다.
+    const prompt = `Bạn là một nhà phân tích chính trị trung lập. Bạn sẽ phân tích các bài xã luận từ quan điểm Bảo thủ và Tự do về cùng một chủ đề.
 
-## 원칙
-- 절대 어느 한쪽 편을 들지 않습니다
-- 감정적 언어를 배제하고 논리적 쟁점만 추출합니다
-- 양측의 주장을 공정하게 요약합니다
+## Nguyên tắc
+- Tuyệt đối không thiên vị bên nào
+- Loại bỏ ngôn ngữ cảm xúc, chỉ trích xuất các luận điểm logic
+- Tóm tắt công bằng lập luận của cả hai bên
 
-## 보수 측 사설
+## Xã luận Quan điểm Bảo thủ
 ${conservativeText.slice(0, 2000)}
 
-## 진보 측 사설
+## Xã luận Quan điểm Tự do
 ${liberalText.slice(0, 2000)}
 
-## 출력 형식 (JSON만 출력)
+## Định dạng Đầu ra (Chỉ xuất JSON)
 {
-  "topic": "핵심 주제 (한 문장)",
-  "conflict": "핵심 쟁점 - 무엇 때문에 의견이 갈리는가? (2-3문장)",
-  "argumentA": "보수 측 핵심 논리 요약 (2-3문장)",
-  "argumentB": "진보 측 핵심 논리 요약 (2-3문장)",
-  "synthesis": "이 갈등이 시사하는 구조적/시대적 의미 (2-3문장)"
+  "topic": "Chủ đề chính (1 câu)",
+  "conflict": "Điểm tranh luận cốt lõi - Tại sao ý kiến lại khác nhau? (2-3 câu)",
+  "argumentA": "Tóm tắt luận điểm cốt lõi của bên Bảo thủ (2-3 câu)",
+  "argumentB": "Tóm tắt luận điểm cốt lõi của bên Tự do (2-3 câu)",
+  "synthesis": "Ý nghĩa cấu trúc/thời đại mà sự xung đột này gợi ra (2-3 câu)"
 }`;
 
     try {
@@ -543,22 +543,22 @@ ${liberalText.slice(0, 2000)}
   }
 
   /**
-   * 방어 로그 메시지 생성
+   * Tạo thông báo log bảo vệ
    */
   generateProtectionLog(stats: FilterStats): string {
     const { totalScanned, blocked } = stats;
 
     return (
-      `오늘 AI가 총 ${totalScanned.toLocaleString()}건을 스캔하여 ` +
-      `범죄 ${blocked.crime}건, 가십 ${blocked.gossip}건, ` +
-      `정치비방 ${blocked.politicalStrife}건을 차단했습니다.`
+      `Hôm nay AI đã quét tổng cộng ${totalScanned.toLocaleString()} tin, chặn ` +
+      `tội phạm ${blocked.crime} tin, chuyện phiếm ${blocked.gossip} tin, ` +
+      `tranh cãi chính trị ${blocked.politicalStrife} tin.`
     );
   }
 
   /**
-   * 뉴스 목록에서 이슈 추적용 키워드를 기사별로 추출
-   * @param newsItems - insight가 생성된 뉴스 목록
-   * @returns perArticle: 기사별 키워드 배열, all: 전체 중복 제거 키워드
+   * Trích xuất từ khóa theo dõi vấn đề từ danh sách tin tức
+   * @param newsItems - Danh sách tin tức đã tạo insight
+   * @returns perArticle: Mảng từ khóa theo bài báo, all: Tất cả từ khóa đã loại bỏ trùng lặp
    */
   async extractKeywords(
     newsItems: Array<{
@@ -580,7 +580,7 @@ ${liberalText.slice(0, 2000)}
       return emptyResult;
     }
 
-    // DEV MODE: AI 스킵 - 빈 결과 반환
+    // DEV MODE: AI Skip - Trả về kết quả rỗng
     if (!this.devModeConfig.isAiEnabled) {
       this.logger.log('[DEV] Skipping AI keyword extraction');
       return emptyResult;
@@ -589,49 +589,49 @@ ${liberalText.slice(0, 2000)}
     const newsContext = newsItems
       .map(
         (news, idx) =>
-          `[${idx}] ${news.title}\n- ${news.insight?.fact ?? '(인사이트 없음)'}`,
+          `[${idx}] ${news.title}\n- ${news.insight?.fact ?? '(Không có insight)'}`,
       )
       .join('\n\n');
 
     const existingKeywordsSection =
       existingKeywords.length > 0
         ? `
-## ⚠️ 기존 키워드 (최우선 규칙)
-아래는 이전 뉴스레터에서 이미 사용된 키워드입니다.
-**같은 주제를 다루는 뉴스가 있다면 반드시 아래 기존 키워드를 그대로 사용하세요.**
-- "의대증원" (X) → "의대 증원" (O, 기존 키워드)
-- "의대 증원 2025" (X) → "의대 증원" (O, 기존 키워드)
-- 띄어쓰기, 연도, 조사 등이 다르더라도 같은 주제면 기존 키워드를 사용하세요.
+## ⚠️ Từ khóa hiện có (Quy tắc ưu tiên cao nhất)
+Dưới đây là các từ khóa đã được sử dụng trong các bản tin trước.
+**Nếu có tin tức cùng chủ đề, BẮT BUỘC phải sử dụng từ khóa hiện có.**
+- "tăng chỉ tiêu y khoa" (X) → "tăng chỉ tiêu trường y" (O, từ khóa hiện có)
+- "tuyển sinh y khoa 2025" (X) → "tăng chỉ tiêu trường y" (O, từ khóa hiện có)
+- Ngay cả khi cách viết, năm, hay từ ngữ khác nhau, nếu cùng chủ đề hãy dùng từ khóa hiện có.
 
-기존 키워드 목록:
+Danh sách từ khóa hiện có:
 ${existingKeywords.map((k) => `- "${k}"`).join('\n')}
 `
         : '';
 
-    const prompt = `뉴스 목록에서 **이슈 추적용 키워드**를 기사별로 추출하세요.
+    const prompt = `Trích xuất **từ khóa theo dõi vấn đề** từ danh sách tin tức cho từng bài báo.
 ${existingKeywordsSection}
-## 추출 기준
-1. **고유명사 우선:** 정책명, 법안명, 기업명, 인물명, 기술명 (예: "의대 증원", "HBM 반도체", "테슬라")
-2. **지속 추적 가능한 이슈:** 일회성 사건은 제외 (예: "화재 사고" X, "기후 변화" O)
-3. **검색 가능한 형태:** 짧고 명확한 키워드 (예: "국민연금 개혁", "금리 인상")
-4. **기존 키워드 재사용:** 같은 주제의 기존 키워드가 있으면 반드시 그것을 사용
-5. **기사당 최대 2개:** 가장 핵심적인 키워드 1~2개만 선택
+## Tiêu chí trích xuất
+1. **Ưu tiên Danh từ riêng:** Tên chính sách, tên luật, tên doanh nghiệp, tên nhân vật, tên công nghệ (VD: "Cải cách tiền lương", "Bán dẫn HBM", "Tesla")
+2. **Vấn đề có thể theo dõi liên tục:** Loại bỏ các sự kiện một lần (VD: "Hỏa hoạn" X, "Biến đổi khí hậu" O)
+3. **Dạng có thể tìm kiếm:** Từ khóa ngắn gọn và rõ ràng (VD: "Cải cách bảo hiểm xã hội", "Tăng lãi suất")
+4. **Tái sử dụng từ khóa hiện có:** Nếu có từ khóa hiện có cùng chủ đề, bắt buộc phải sử dụng nó.
+5. **Tối đa 2 từ khóa mỗi bài:** Chỉ chọn 1-2 từ khóa cốt lõi nhất.
 
-## 뉴스 목록
+## Danh sách Tin tức
 ${newsContext}
 
-## 출력 형식 (JSON만 출력, 다른 텍스트 없이)
+## Định dạng Đầu ra (Chỉ xuất JSON, không có văn bản khác)
 {
   "perArticle": [
-    ["키워드A", "키워드B"],
-    ["키워드C"],
+    ["Từ khóa A", "Từ khóa B"],
+    ["Từ khóa C"],
     ...
   ],
-  "all": ["키워드A", "키워드B", "키워드C", ...]
+  "all": ["Từ khóa A", "Từ khóa B", "Từ khóa C", ...]
 }
 
-- perArticle: 각 기사([0], [1], ...)에 해당하는 키워드 배열. 기사당 최대 2개.
-- all: perArticle의 모든 키워드를 중복 제거한 배열.`;
+- perArticle: Mảng từ khóa tương ứng với từng bài báo ([0], [1], ...). Tối đa 2 từ khóa mỗi bài.
+- all: Mảng tất cả các từ khóa trong perArticle đã được loại bỏ trùng lặp.`;
 
     try {
       const result = await withRetry(() => this.model.generateContent(prompt), {
@@ -655,12 +655,12 @@ ${newsContext}
         all: string[];
       };
 
-      // perArticle 길이가 newsItems보다 짧으면 빈 배열로 패딩
+      // Nếu độ dài perArticle ngắn hơn newsItems, điền thêm mảng rỗng
       while (parsed.perArticle.length < newsItems.length) {
         parsed.perArticle.push([]);
       }
 
-      // all 중복 제거 및 빈 문자열 제거
+      // Loại bỏ trùng lặp trong all và loại bỏ chuỗi rỗng
       const uniqueAll = [...new Set(parsed.all.filter((k) => k.trim()))];
 
       this.logger.log(
@@ -674,7 +674,7 @@ ${newsContext}
   }
 
   /**
-   * 통합 필터 통계 계산
+   * Tính toán thống kê bộ lọc tổng hợp
    */
   aggregateFilterStats(results: SelectionResult[]): FilterStats {
     return results.reduce<FilterStats>(

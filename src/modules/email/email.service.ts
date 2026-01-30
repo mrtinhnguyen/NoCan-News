@@ -1,7 +1,6 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { NewsletterData, ProcessedNews } from '../../common/interfaces';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -13,69 +12,57 @@ export interface Recipient {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseService,
   ) {
-    this.initializeTransporter();
+    this.initializeResend();
   }
 
-  private initializeTransporter(): void {
-    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>(
-      'AWS_SECRET_ACCESS_KEY',
-    );
-    const region = this.configService.get<string>('AWS_SES_REGION');
+  private initializeResend(): void {
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
 
-    if (accessKeyId && secretAccessKey && region) {
-      const sesClient = new SESv2Client({
-        region,
-        credentials: { accessKeyId, secretAccessKey },
-      });
-
-      this.transporter = nodemailer.createTransport({
-        SES: { sesClient, SendEmailCommand },
-      } as nodemailer.TransportOptions);
-      this.logger.log('AWS SES transporter initialized');
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      this.logger.log('Resend client initialized');
     } else {
       this.logger.warn(
-        'AWS SES credentials not configured. Email sending disabled.',
+        'RESEND_API_KEY not configured. Email sending disabled.',
       );
     }
   }
 
   private getCategoryName(category: string): string {
     const names: Record<string, string> = {
-      business: '경제',
-      tech: '기술',
-      society: '사회',
-      world: '국제',
+      business: 'Kinh tế',
+      tech: 'Công nghệ',
+      society: 'Xã hội',
+      world: 'Thế giới',
     };
     return names[category] || category;
   }
 
   /**
-   * 이메일 제목 생성
+   * Tạo tiêu đề email
    */
   getEmailSubject(): string {
     const today = new Date()
-      .toLocaleDateString('ko-KR', {
-        timeZone: 'Asia/Seoul',
+      .toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       })
-      .replace(/\. /g, '-')
-      .replace(/\./g, '');
+      .replace(/\//g, '-');
 
-    return `🔇 NoCan News - ${today} | 오늘의 뉴스`;
+    return `🔇 NoCan News - ${today} | Tin tức hôm nay`;
   }
 
   /**
-   * 뉴스레터 HTML 렌더링
-   * Footer에 {{UNSUBSCRIBE_URL}} 플레이스홀더 포함
+   * Render HTML bản tin
+   * Footer bao gồm placeholder {{UNSUBSCRIBE_URL}}
    */
   renderNewsletter(data: NewsletterData): string {
     this.logger.log('Rendering newsletter HTML...');
@@ -112,27 +99,27 @@ export class EmailService {
       editorialHtml = `
         <div style="margin-top: 32px; padding: 16px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
           <h2 style="color: #1a1a2e; font-size: 20px; margin-bottom: 16px;">
-            ⚖️ 오늘의 사설 분석
+            ⚖️ Phân tích xã luận hôm nay
           </h2>
           <p style="font-size: 16px; font-weight: 600; color: #343a40; margin-bottom: 12px;">
             ${editorialSynthesis.topic}
           </p>
           <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
             <p style="font-size: 14px; color: #495057; margin: 0;">
-              <strong>🔴 핵심 쟁점:</strong> ${editorialSynthesis.conflict}
+              <strong>🔴 Vấn đề cốt lõi:</strong> ${editorialSynthesis.conflict}
             </p>
           </div>
           <div style="background: #fff5f5; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-            <p style="font-size: 14px; color: #c92a2a; font-weight: 600; margin: 0 0 8px 0;">보수 측 논리</p>
+            <p style="font-size: 14px; color: #c92a2a; font-weight: 600; margin: 0 0 8px 0;">Quan điểm A</p>
             <p style="font-size: 14px; color: #495057; margin: 0; line-height: 1.6;">${editorialSynthesis.argumentA}</p>
           </div>
           <div style="background: #e7f5ff; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-            <p style="font-size: 14px; color: #1971c2; font-weight: 600; margin: 0 0 8px 0;">진보 측 논리</p>
+            <p style="font-size: 14px; color: #1971c2; font-weight: 600; margin: 0 0 8px 0;">Quan điểm B</p>
             <p style="font-size: 14px; color: #495057; margin: 0; line-height: 1.6;">${editorialSynthesis.argumentB}</p>
           </div>
           <div style="background: #f1f3f5; padding: 12px; border-radius: 8px;">
             <p style="font-size: 13px; color: #495057; margin: 0;">
-              <strong>💡 구조적 의미:</strong> ${editorialSynthesis.synthesis}
+              <strong>💡 Ý nghĩa cấu trúc:</strong> ${editorialSynthesis.synthesis}
             </p>
           </div>
         </div>
@@ -141,7 +128,7 @@ export class EmailService {
 
     return `
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -156,13 +143,13 @@ export class EmailService {
         🔇 NoCan News
       </h1>
       <p style="color: #9ca3af; font-size: 14px; margin: 0;">
-        세상의 소음은 끄고, 구조적 맥락만 남긴다
+        Tắt tiếng ồn, Bật bối cảnh (Noise Off, Context On)
       </p>
       <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0;">
         ${date}
       </p>
       <a href="{{ARCHIVE_URL}}" style="display: inline-block; margin-top: 12px; padding: 6px 16px; background-color: rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; text-decoration: none; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);">
-        웹에서 보기
+        Xem trên web
       </a>
     </div>
 
@@ -182,7 +169,7 @@ export class EmailService {
     <!-- Footer -->
     <div style="background-color: #f8f9fa; padding: 24px 16px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
-        NoCan News는 AI가 큐레이션하는 뉴스레터입니다.
+        NoCan News là bản tin được biên tập bởi AI.
       </p>
       <p style="color: #9ca3af; font-size: 11px; margin: 0 0 16px 0;">
         Powered by Gemini AI • Noise Off, Context On
@@ -190,7 +177,7 @@ export class EmailService {
 
       <!-- Unsubscribe Link Placeholder -->
       <a href="{{UNSUBSCRIBE_URL}}" style="color: #9ca3af; font-size: 11px; text-decoration: underline;">
-        수신거부 (Unsubscribe)
+        Hủy đăng ký (Unsubscribe)
       </a>
     </div>
 
@@ -216,13 +203,13 @@ export class EmailService {
             ? `
         <div style="background: white; padding: 12px; border-radius: 6px;">
           <p style="font-size: 13px; color: #374151; margin: 0 0 8px 0; line-height: 1.5;">
-            <span style="color: #3b82f6; font-weight: 600;">📍 Fact:</span> ${insight.fact}
+            <span style="color: #3b82f6; font-weight: 600;">📍 Sự kiện:</span> ${insight.fact}
           </p>
           <p style="font-size: 13px; color: #374151; margin: 0 0 8px 0; line-height: 1.5;">
-            <span style="color: #f59e0b; font-weight: 600;">📍 Context:</span> ${insight.context}
+            <span style="color: #f59e0b; font-weight: 600;">📍 Bối cảnh:</span> ${insight.context}
           </p>
           <p style="font-size: 13px; color: #374151; margin: 0; line-height: 1.5;">
-            <span style="color: #10b981; font-weight: 600;">📍 Implication:</span> ${insight.implication}
+            <span style="color: #10b981; font-weight: 600;">📍 Hệ quả:</span> ${insight.implication}
           </p>
         </div>
         `
@@ -233,17 +220,17 @@ export class EmailService {
   }
 
   /**
-   * 이메일 개별 발송 (각 수신자마다 개인화된 수신거부 링크)
+   * Gửi email từng người (liên kết hủy đăng ký cá nhân hóa)
    */
   async sendNewsletter(
     recipients: Recipient[],
     baseHtml: string,
   ): Promise<void> {
-    if (!this.transporter) {
-      throw new Error('Email transporter not configured.');
+    if (!this.resend) {
+      throw new Error('Resend client not configured.');
     }
 
-    const senderEmail = this.configService.get('AWS_SES_FROM_EMAIL');
+    const senderEmail = this.configService.get('RESEND_FROM_EMAIL');
     const replyToEmail = this.configService.get('REPLY_TO_EMAIL');
     const baseUrl = this.configService.get<string>('WEB_BASE_URL');
     const subject = this.getEmailSubject();
@@ -261,23 +248,28 @@ export class EmailService {
     let successCount = 0;
     let failCount = 0;
 
+    // Resend has a rate limit, but for batch sending they recommend batch API or just loop.
+    // For simplicity in this migration, we loop.
+    // Ideally we should use Resend's batch sending capabilities if list is large,
+    // but the original code looped, so we keep the logic structure.
+
     for (const recipient of recipients) {
       try {
-        // 수신 거부 링크 생성 (UUID 사용)
+        // Tạo liên kết hủy đăng ký (sử dụng UUID)
         const unsubscribeLink = baseUrl
           ? `${baseUrl}/unsubscribe?id=${recipient.id}`
           : '#';
 
-        // 아카이브 링크 생성
+        // Tạo liên kết lưu trữ
         const archiveLink = baseUrl ? `${baseUrl}/archive` : '#';
 
-        // HTML 내의 플레이스홀더를 실제 링크로 교체
+        // Thay thế placeholder trong HTML
         const personalizedHtml = baseHtml
           .replace('{{UNSUBSCRIBE_URL}}', unsubscribeLink)
           .replace('{{ARCHIVE_URL}}', archiveLink);
 
-        // 개별 발송
-        await this.transporter.sendMail({
+        // Gửi email
+        await this.resend.emails.send({
           from: senderEmail,
           to: recipient.email,
           replyTo: replyToEmail,
@@ -291,8 +283,8 @@ export class EmailService {
 
         successCount++;
 
-        // AWS SES 발송 간격 (초당 14통 허용, 100ms 간격)
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Resend rate limits are generally higher than SES sandbox, but let's keep a small delay to be safe
+        await new Promise((resolve) => setTimeout(resolve, 50));
       } catch (error) {
         failCount++;
         this.logger.error(

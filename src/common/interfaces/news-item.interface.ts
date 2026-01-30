@@ -1,7 +1,7 @@
 import { NewsCategory } from '../constants';
 
 /**
- * RSS에서 수집한 원본 뉴스 아이템
+ * Mục tin tức gốc thu thập từ RSS
  */
 export interface NewsItem {
   title: string;
@@ -12,7 +12,7 @@ export interface NewsItem {
 }
 
 /**
- * AI 처리 후 가공된 뉴스 아이템
+ * Mục tin tức đã qua xử lý AI
  */
 export interface ProcessedNews {
   original: NewsItem;
@@ -26,7 +26,7 @@ export interface ProcessedNews {
 }
 
 /**
- * 독성 콘텐츠 필터링 통계
+ * Thống kê lọc nội dung độc hại
  */
 export interface FilterStats {
   totalScanned: number;
@@ -38,7 +38,7 @@ export interface FilterStats {
 }
 
 /**
- * 카테고리별로 분류된 뉴스
+ * Tin tức đã phân loại theo danh mục
  */
 export interface CategorizedNews {
   business: NewsItem[];
@@ -48,7 +48,7 @@ export interface CategorizedNews {
 }
 
 /**
- * AI 선별 결과 (카테고리별)
+ * Kết quả chọn lọc AI (theo danh mục)
  */
 export interface SelectionResult {
   filterStats: {
@@ -63,22 +63,22 @@ export interface SelectionResult {
 }
 
 /**
- * 스크래핑된 뉴스 (본문 포함)
+ * Tin tức đã cào (bao gồm nội dung)
  */
 export interface ScrapedNews extends NewsItem {
   content: string;
 }
 
 /**
- * AI 인사이트 생성 결과
+ * Kết quả tạo insight AI
  */
 export interface InsightResult {
-  index: number; // 입력 뉴스 배열의 인덱스 (AI 응답 매핑용)
+  index: number; // Index của mảng tin tức đầu vào (để ánh xạ phản hồi AI)
   detoxedTitle: string;
   insight: {
     fact: string;
     context: string;
     implication: string;
   };
-  isFallback?: boolean; // AI 실패 시 fallback 값 사용 여부
+  isFallback?: boolean; // Sử dụng giá trị fallback khi AI thất bại
 }
