@@ -1,4 +1,4 @@
-# Dự án: NoCan News (News Noise Canceling)
+# Dự án: Morning News (News Noise Canceling)
 
 > **Quan trọng:** Bất cứ khi nào có thay đổi về cấu trúc dự án, cấu hình, logic, v.v., tài liệu này (CLAUDE.md) cũng phải được cập nhật.
 

@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
   try {
-    logger.log('Starting NoCan News newsletter generation...');
+    logger.log('Starting Morning News newsletter generation...');
 
     const newsletterService = app.get(NewsletterService);
     await newsletterService.run();

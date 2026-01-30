@@ -229,7 +229,7 @@ export class IssueTrackingService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${issue.display_title} - Báo cáo Vấn đề NoCan News</title>
+  <title>${issue.display_title} - Báo cáo Vấn đề Morning News</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
     h1 { border-bottom: 2px solid #000; padding-bottom: 10px; }

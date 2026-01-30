@@ -31,7 +31,7 @@ async function testEmail() {
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: sans-serif; padding: 20px;">
-  <h1>🔇 NoCan News - Kiểm tra Resend</h1>
+  <h1>🔇 Morning News - Kiểm tra Resend</h1>
   <p>Gửi email qua Resend hoạt động bình thường!</p>
   <hr>
   <p style="color: #666; font-size: 12px;">

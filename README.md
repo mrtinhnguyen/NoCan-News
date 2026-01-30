@@ -1,4 +1,4 @@
-# NoCan News (Khử Nhiễu Tin Tức)
+# Morning News (Khử Nhiễu Tin Tức)
 
 > "Tắt tiếng ồn, Bật bối cảnh (Noise Off, Context On)"
 
@@ -49,7 +49,7 @@ Hệ thống lọc thông tin hiện đại được tái giải thích dựa tr
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     🔇 NoCan News                           │
+│                     🔇 Morning News                           │
 │          Tắt tiếng ồn, Bật bối cảnh (Noise Off, Context On) │
 │                      2024-12-27                             │
 ├─────────────────────────────────────────────────────────────┤
@@ -94,7 +94,7 @@ Hệ thống lọc thông tin hiện đại được tái giải thích dựa tr
 │ 💡 Ý nghĩa cấu trúc: Cần tìm điểm cân bằng giữa tăng năng   │
 │                suất và phúc lợi qua đồng thuận xã hội.      │
 ├─────────────────────────────────────────────────────────────┤
-│         NoCan News là bản tin được biên tập bởi AI.         │
+│         Morning News là bản tin được biên tập bởi AI.         │
 │            Powered by Gemini AI • Noise Off, Context On     │
 └─────────────────────────────────────────────────────────────┘
 ```

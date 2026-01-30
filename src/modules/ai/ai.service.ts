@@ -251,7 +251,7 @@ ${item.content.slice(0, 1500)}${item.content.length > 1500 ? '...(lược bỏ)'
       )
       .join('\n\n---\n\n');
 
-    const prompt = `Bạn là biên tập viên AI của "NoCan News". Bạn chuyển đổi những tin tức giật gân, gây lo lắng thành những sự thật khô khan và bình tĩnh.
+    const prompt = `Bạn là biên tập viên AI của "Morning News". Bạn chuyển đổi những tin tức giật gân, gây lo lắng thành những sự thật khô khan và bình tĩnh.
 
                     ## Nguyên tắc làm việc
                     Tạo dữ liệu JSON cho ${scrapedNews.length} tin tức dưới đây.

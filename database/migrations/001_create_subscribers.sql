@@ -48,5 +48,5 @@ WITH CHECK (true);
 -- Backend (Service Role): Full access (bypasses RLS)
 
 -- Add table comment for documentation
-COMMENT ON TABLE public.subscribers IS 'Newsletter subscriber list for NoCan News';
+COMMENT ON TABLE public.subscribers IS 'Newsletter subscriber list for Morning News';
 COMMENT ON COLUMN public.subscribers.is_active IS 'Soft delete flag - false means unsubscribed';

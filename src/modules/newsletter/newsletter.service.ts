@@ -90,7 +90,7 @@ export class NewsletterService {
     // DEV MODE: In banner khởi động
     this.devModeConfig.printBanner();
 
-    this.logger.log('=== Bắt đầu tạo bản tin NoCan News ===');
+    this.logger.log('=== Bắt đầu tạo bản tin Morning News ===');
 
     const metrics: NewsletterMetrics = {
       rss: { totalScanned: 0, byCategory: {} as Record<NewsCategory, number> },
@@ -444,7 +444,7 @@ export class NewsletterService {
       // Bước 9: In chỉ số cuối cùng
       this.logMetrics(metrics);
 
-      this.logger.log('=== Hoàn tất tạo bản tin NoCan News ===');
+      this.logger.log('=== Hoàn tất tạo bản tin Morning News ===');
     } catch (error) {
       this.logger.error('Tạo bản tin thất bại', error);
       this.logMetrics(metrics);

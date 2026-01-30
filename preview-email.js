@@ -154,7 +154,7 @@ const html = `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NoCan News - ${date}</title>
+  <title>Morning News - ${date}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
   <div style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff;">
@@ -162,7 +162,7 @@ const html = `
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px 16px; text-align: center;">
       <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 8px 0; letter-spacing: -0.5px;">
-        NoCan News
+        Morning News
       </h1>
       <p style="color: #9ca3af; font-size: 14px; margin: 0;">
         Tắt tiếng ồn, Bật ngữ cảnh
@@ -191,7 +191,7 @@ const html = `
     <!-- Footer -->
     <div style="background-color: #f8f9fa; padding: 24px 16px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
-        NoCan News là bản tin được AI chọn lọc.
+        Morning News là bản tin được AI chọn lọc.
       </p>
       <p style="color: #9ca3af; font-size: 11px; margin: 0 0 16px 0;">
         Powered by Gemini AI • Noise Off, Context On
