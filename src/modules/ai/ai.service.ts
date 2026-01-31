@@ -85,6 +85,8 @@ export class AiService {
       tech: 'Công nghệ/Khoa học',
       society: 'Xã hội',
       world: 'Quốc tế/Thế giới',
+      ai: 'Trí tuệ Nhân tạo',
+      crypto: 'Tiền điện tử/Blockchain',
     };
 
     // Chỉ gửi 20 tin đầu cho AI (RSS Google News đã sắp xếp theo độ quan trọng)

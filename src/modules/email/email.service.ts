@@ -40,6 +40,8 @@ export class EmailService {
       tech: 'Công nghệ',
       society: 'Xã hội',
       world: 'Thế giới',
+      ai: 'Trí tuệ Nhân tạo',
+      crypto: 'Tiền điện tử',
     };
     return names[category] || category;
   }
@@ -78,7 +80,14 @@ export class EmailService {
     }
 
     let newsHtml = '';
-    const categoryOrder = ['business', 'tech', 'society', 'world'];
+    const categoryOrder = [
+      'world',
+      'business',
+      'tech',
+      'ai',
+      'crypto',
+      'society',
+    ];
 
     for (const category of categoryOrder) {
       const newsItems = newsByCategory[category];

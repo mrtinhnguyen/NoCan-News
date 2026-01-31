@@ -13,17 +13,25 @@ export const GOOGLE_RSS_URLS = {
   SECTION_BUSINESS:
     'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=vi&gl=VN&ceid=VN:vi',
 
-  // Science & Technology
+  // Science & Technology (Global/English)
   SECTION_TECH:
-    'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=vi&gl=VN&ceid=VN:vi',
+    'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en',
 
-  // World (Global)
+  // World (Global/English)
   SECTION_WORLD:
-    'https://news.google.com/rss/headlines/section/topic/WORLD?hl=vi&gl=VN&ceid=VN:vi',
+    'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en',
 
   // Vietnam (Nation/Việt Nam)
   SECTION_VIETNAM:
     'https://news.google.com/rss/headlines/section/topic/NATION?hl=vi&gl=VN&ceid=VN:vi',
+
+  // Artificial Intelligence (AI) (Global/English)
+  SECTION_AI:
+    'https://news.google.com/rss/topics/CAAqIAgKIhpDQkFTRFFvSEwyMHZNRzFyZWhJQ1pXNG9BQVAB?hl=en-US&gl=US&ceid=US:en',
+
+  // Crypto (Global/English)
+  SECTION_CRYPTO:
+    'https://news.google.com/rss/topics/CAAqJAgKIh5DQkFTRUFvS0wyMHZNSFp3YWpSZlloSUNaVzRvQUFQAQ?hl=en-US&gl=US&ceid=US:en',
 };
 
 /**
@@ -44,7 +52,13 @@ export const CUSTOM_QUERIES = {
 /**
  * News Categories
  */
-export type NewsCategory = 'business' | 'tech' | 'society' | 'world';
+export type NewsCategory =
+  | 'business'
+  | 'tech'
+  | 'society'
+  | 'world'
+  | 'ai'
+  | 'crypto';
 
 /**
  * Editorial Stance

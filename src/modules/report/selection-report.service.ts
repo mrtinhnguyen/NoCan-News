@@ -24,6 +24,8 @@ export class SelectionReportService {
     tech: 'Công nghệ/Khoa học',
     society: 'Xã hội',
     world: 'Quốc tế/Thế giới',
+    ai: 'Trí tuệ Nhân tạo',
+    crypto: 'Tiền điện tử/Crypto',
   };
 
   /**
@@ -34,6 +36,12 @@ export class SelectionReportService {
     selectionResults: Map<NewsCategory, SelectionResult>,
   ): string {
     const categories: CategorySelectionData[] = [
+      {
+        category: 'world',
+        categoryLabel: this.categoryLabels.world,
+        items: categorizedNews.world,
+        selectionResult: selectionResults.get('world')!,
+      },
       {
         category: 'business',
         categoryLabel: this.categoryLabels.business,
@@ -47,16 +55,22 @@ export class SelectionReportService {
         selectionResult: selectionResults.get('tech')!,
       },
       {
+        category: 'ai',
+        categoryLabel: this.categoryLabels.ai,
+        items: categorizedNews.ai,
+        selectionResult: selectionResults.get('ai')!,
+      },
+      {
+        category: 'crypto',
+        categoryLabel: this.categoryLabels.crypto,
+        items: categorizedNews.crypto,
+        selectionResult: selectionResults.get('crypto')!,
+      },
+      {
         category: 'society',
         categoryLabel: this.categoryLabels.society,
         items: categorizedNews.society,
         selectionResult: selectionResults.get('society')!,
-      },
-      {
-        category: 'world',
-        categoryLabel: this.categoryLabels.world,
-        items: categorizedNews.world,
-        selectionResult: selectionResults.get('world')!,
       },
     ];
 

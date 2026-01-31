@@ -115,19 +115,25 @@ export class NewsletterService {
       metrics.rss.byCategory.tech = categorizedNews.tech.length;
       metrics.rss.byCategory.society = categorizedNews.society.length;
       metrics.rss.byCategory.world = categorizedNews.world.length;
+      metrics.rss.byCategory.ai = categorizedNews.ai.length;
+      metrics.rss.byCategory.crypto = categorizedNews.crypto.length;
       metrics.rss.totalScanned =
         categorizedNews.business.length +
         categorizedNews.tech.length +
         categorizedNews.society.length +
-        categorizedNews.world.length;
+        categorizedNews.world.length +
+        categorizedNews.ai.length +
+        categorizedNews.crypto.length;
 
       // Bước 2: AI chọn lọc (xử lý song song theo danh mục)
       this.logger.log('Bước 2: AI đang chọn lọc tin tức từ mỗi danh mục...');
       const categories: CategoryData[] = [
+        { key: 'world', items: categorizedNews.world },
         { key: 'business', items: categorizedNews.business },
         { key: 'tech', items: categorizedNews.tech },
+        { key: 'ai', items: categorizedNews.ai },
+        { key: 'crypto', items: categorizedNews.crypto },
         { key: 'society', items: categorizedNews.society },
-        { key: 'world', items: categorizedNews.world },
       ];
 
       const selectionPromises: Promise<SelectionResult>[] = categories.map(

@@ -130,6 +130,36 @@ export class RssService {
   }
 
   /**
+   * Thu thập tin tức Trí tuệ Nhân tạo (AI)
+   */
+  async fetchAiNews(): Promise<NewsItem[]> {
+    this.logger.log('Đang thu thập tin tức AI...');
+    const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_AI, 'ai');
+    this.logger.log(`Đã thu thập ${items.length} tin tức AI`);
+
+    if (items.length > 0) {
+      this.logger.debug(`Mẫu: ${items[0].title}`);
+    }
+
+    return items;
+  }
+
+  /**
+   * Thu thập tin tức Crypto (Tiền điện tử)
+   */
+  async fetchCryptoNews(): Promise<NewsItem[]> {
+    this.logger.log('Đang thu thập tin tức Crypto...');
+    const items = await this.fetchRss(GOOGLE_RSS_URLS.SECTION_CRYPTO, 'crypto');
+    this.logger.log(`Đã thu thập ${items.length} tin tức Crypto`);
+
+    if (items.length > 0) {
+      this.logger.debug(`Mẫu: ${items[0].title}`);
+    }
+
+    return items;
+  }
+
+  /**
    * Thu thập xã luận
    * @param stance - 'conservative' (Nhóm 1) hoặc 'liberal' (Nhóm 2)
    */
@@ -183,19 +213,27 @@ export class RssService {
   async fetchAllCategories(): Promise<CategorizedNews> {
     this.logger.log('Đang thu thập tất cả danh mục tin tức...');
 
-    const [business, tech, society, world] = await Promise.all([
+    const [business, tech, society, world, ai, crypto] = await Promise.all([
       this.fetchBusinessNews(),
       this.fetchTechNews(),
       this.fetchSocietyNews(),
       this.fetchWorldNews(),
+      this.fetchAiNews(),
+      this.fetchCryptoNews(),
     ]);
 
-    const total = business.length + tech.length + society.length + world.length;
+    const total =
+      business.length +
+      tech.length +
+      society.length +
+      world.length +
+      ai.length +
+      crypto.length;
     this.logger.log(`Tổng số tin đã thu thập: ${total}`);
     this.logger.log(
-      `  - Kinh doanh: ${business.length}, Công nghệ: ${tech.length}, Xã hội: ${society.length}, Thế giới: ${world.length}`,
+      `  - Kinh doanh: ${business.length}, Công nghệ: ${tech.length}, Xã hội: ${society.length}, Thế giới: ${world.length}, AI: ${ai.length}, Crypto: ${crypto.length}`,
     );
 
-    return { business, tech, society, world };
+    return { business, tech, society, world, ai, crypto };
   }
 }

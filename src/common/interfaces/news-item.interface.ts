@@ -45,6 +45,8 @@ export interface CategorizedNews {
   tech: NewsItem[];
   society: NewsItem[];
   world: NewsItem[];
+  ai: NewsItem[];
+  crypto: NewsItem[];
 }
 
 /**
